@@ -134,7 +134,7 @@ jobs:
 
   deploy-site:
     name: "Deploy Landing Page"
-    needs: [build-linux, build-windows, build-installer-win, build-installer-linux, build-installer-mac]
+    needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -153,7 +153,7 @@ jobs:
 
   release:
     name: "Create Release"
-    needs: [build-linux, build-windows, build-installer-win, build-installer-linux, build-installer-mac]
+    needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
