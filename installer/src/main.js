@@ -1,147 +1,67 @@
 // Suncord Installer — Main Process
-// Detects Discord installations and patches them
+// Detects Discord installations and patches them (Vencord-style)
 
 const { app, BrowserWindow, ipcMain, shell } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const { execSync, spawn } = require("child_process");
-const asar = require("@electron/asar");
+const os = require("os");
 
 let mainWindow;
-
-function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 600,
-    height: 520,
-    resizable: false,
-    frame: false,
-    titleBarStyle: "hidden",
-    transparent: true,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: path.join(__dirname, "preload.js"),
-    },
-    icon: path.join(__dirname, "icon.png"),
-  });
-
-  mainWindow.loadFile(path.join(__dirname, "index.html"));
-}
-
-app.whenReady().then(createWindow);
-
-app.on("window-all-closed", () => app.quit());
 
 // ── Discord Detection ──
 
 function getDiscordPaths() {
   const paths = [];
   const platform = process.platform;
+  const home = os.homedir();
 
   if (platform === "win32") {
     const localAppData = process.env.LOCALAPPDATA || "";
-    const appData = process.env.APPDATA || "";
-    const programFiles = process.env["PROGRAMFILES(X86)"] || "C:\\Program Files (x86)";
-    const programFilesAlt = process.env["PROGRAMFILES"] || "C:\\Program Files";
-
     const candidates = [
       path.join(localAppData, "Discord"),
-      path.join(appData, "Discord"),
-      path.join(programFiles, "Discord"),
-      path.join(programFilesAlt, "Discord"),
       path.join(localAppData, "DiscordPTB"),
-      path.join(appData, "DiscordPTB"),
       path.join(localAppData, "DiscordCanary"),
-      path.join(appData, "DiscordCanary"),
-      path.join(localAppData, "DiscordDevelopment"),
-      // Check if discord_desktop_core exists directly in app/ (no version dir)
-      path.join(localAppData, "Discord", "app"),
     ];
-
     for (const p of candidates) {
-      if (fs.existsSync(p)) {
-        // If path points directly to app/ dir (no version subdir)
-        if (p.endsWith(path.join("Discord", "app"))) {
-          const coreIndex = path.join(p, "discord_desktop_core", "index.js");
-          if (fs.existsSync(coreIndex)) {
-            const name = p.includes("PTB") ? "Discord PTB" : p.includes("Canary") ? "Discord Canary" : "Discord";
-            paths.push({ name, path: path.dirname(p), appDir: p, version: "direct" });
-            continue;
-          }
-        }
-
-        const appDir = findLatestAppDir(p);
-        if (appDir) {
-          const name = p.includes("PTB") ? "Discord PTB" : p.includes("Canary") ? "Discord Canary" : "Discord";
-          paths.push({ name, path: p, appDir, version: path.basename(appDir) });
-        }
+      if (!fs.existsSync(p)) continue;
+      const latest = findLatestAppDir(p);
+      if (latest) {
+        const name = p.includes("PTB") ? "Discord PTB" : p.includes("Canary") ? "Discord Canary" : "Discord";
+        paths.push({ name, resources: path.join(latest, "resources") });
       }
     }
   } else if (platform === "linux") {
-    const home = process.env.HOME || "";
     const candidates = [
       path.join(home, ".config/discord"),
-      path.join(home, ".config/discordptb"),
-      path.join(home, ".config/discord-canary"),
       "/usr/share/discord",
-      "/usr/lib/discord",
       "/usr/lib64/discord",
-      "/opt/Discord",
+      "/opt/discord",
+      path.join(home, ".local/share/discord"),
+      path.join(home, ".var/app/com.discordapp.Discord/config/discord"),
     ];
-
     for (const p of candidates) {
       if (!fs.existsSync(p)) continue;
-
-      // Try findLatestAppDir (for app/ wrapper structure)
-      const appDir = findLatestAppDir(p);
-      if (appDir) {
+      const latest = findLatestAppDir(p);
+      if (latest) {
         const name = p.includes("ptb") ? "Discord PTB" : p.includes("canary") ? "Discord Canary" : "Discord";
-        paths.push({ name, path: p, appDir, version: path.basename(appDir) });
-        continue;
+        paths.push({ name, resources: path.join(latest, "resources") });
       }
-
-      // Direct structure: ~/.config/discord/app-X.Y.Z/resources/app.asar
-      // Look for app-* directories directly
-      try {
-        const entries = fs.readdirSync(p);
-        const appDirs = entries
-          .filter((e) => e.startsWith("app-") || e.startsWith("discord-"))
-          .sort()
-          .reverse();
-
-        for (const dir of appDirs) {
-          const fullPath = path.join(p, dir);
-          if (!fs.statSync(fullPath).isDirectory()) continue;
-
-          const asarPath = path.join(fullPath, "resources", "app.asar");
-          const coreIndex = path.join(fullPath, "discord_desktop_core", "index.js");
-          if (fs.existsSync(asarPath) || fs.existsSync(coreIndex)) {
-            const name = p.includes("ptb") ? "Discord PTB" : p.includes("canary") ? "Discord Canary" : "Discord";
-            paths.push({ name, path: p, appDir: fullPath, version: dir });
-            break;
-          }
-        }
-      } catch (e) {}
     }
   } else if (platform === "darwin") {
-    const home = process.env.HOME || "";
     const candidates = [
+      path.join(home, "Applications", "Discord.app", "Contents", "Resources"),
+      "/Applications/Discord.app/Contents/Resources",
       path.join(home, "Library", "Application Support", "discord"),
-      path.join(home, "Library", "Application Support", "discordptb"),
-      path.join(home, "Library", "Application Support", "discord-canary"),
     ];
-
     for (const p of candidates) {
-      if (fs.existsSync(p)) {
-        const appDir = findLatestAppDir(p);
-        if (appDir) {
-          const name = p.includes("ptb")
-            ? "Discord PTB"
-            : p.includes("canary")
-            ? "Discord Canary"
-            : "Discord";
-          paths.push({ name, path: p, appDir, version: path.basename(appDir) });
-        }
+      if (!fs.existsSync(p)) continue;
+      // macOS: resources dir directly or app-X.Y.Z/resources
+      if (fs.existsSync(path.join(p, "app.asar"))) {
+        paths.push({ name: "Discord", resources: p });
+      } else {
+        const latest = findLatestAppDir(path.dirname(p));
+        if (latest) paths.push({ name: "Discord", resources: path.join(latest, "resources") });
       }
     }
   }
@@ -150,206 +70,114 @@ function getDiscordPaths() {
 }
 
 function findLatestAppDir(basePath) {
-  try {
-    const appPath = path.join(basePath, "app");
-    if (!fs.existsSync(appPath)) return null;
-
-    // List all version directories inside app/
-    const entries = fs.readdirSync(appPath);
-    if (entries.length === 0) return null;
-
-    // Sort newest first
+  // Check app-X.Y.Z structure (Linux ~/.config/discord)
+  if (fs.existsSync(basePath)) {
+    const entries = fs.readdirSync(basePath);
+    const appDirs = entries.filter(e => e.startsWith("app-")).sort().reverse();
+    for (const dir of appDirs) {
+      const full = path.join(basePath, dir);
+      if (fs.statSync(full).isDirectory() && fs.existsSync(path.join(full, "resources", "app.asar"))) {
+        return full;
+      }
+    }
+  }
+  // Check app/app-X.Y.Z structure (Windows)
+  const appDir = path.join(basePath, "app");
+  if (fs.existsSync(appDir)) {
+    const entries = fs.readdirSync(appDir);
     entries.sort().reverse();
-
     for (const entry of entries) {
-      const fullPath = path.join(appPath, entry);
-      const stat = fs.statSync(fullPath);
-      if (!stat.isDirectory()) continue;
-
-      // Check for discord_desktop_core/index.js (newer Discord)
-      const coreIndex = path.join(fullPath, "discord_desktop_core", "index.js");
-      if (fs.existsSync(coreIndex)) return fullPath;
-
-      // Check for resources/app.asar (Linux/macOS Discord)
-      const resourcesAsar = path.join(fullPath, "resources", "app.asar");
-      if (fs.existsSync(resourcesAsar)) return fullPath;
-
-      // Check for resources/app (older Discord)
-      const resourcesApp = path.join(fullPath, "resources", "app");
-      if (fs.existsSync(resourcesApp)) return fullPath;
+      const full = path.join(appDir, entry);
+      if (fs.statSync(full).isDirectory() && fs.existsSync(path.join(full, "resources", "app.asar"))) {
+        return full;
+      }
     }
-
-    // Fallback: return the first directory we found
-    for (const entry of entries) {
-      const fullPath = path.join(appPath, entry);
-      if (fs.statSync(fullPath).isDirectory()) return fullPath;
-    }
-  } catch (e) {}
+  }
   return null;
 }
 
-// ── Patching Logic ──
+// ── Patch Detection ──
 
-function getPatchedState(discordPath, appDir) {
-  // Method 1: discord_desktop_core/index.js (Windows)
-  const coreIndex = path.join(appDir, "discord_desktop_core", "index.js");
-  if (fs.existsSync(coreIndex)) {
-    try {
-      const content = fs.readFileSync(coreIndex, "utf-8");
-      return { patched: content.includes("suncord") || content.includes("SUNCORD") };
-    } catch { return { patched: false }; }
-  }
-
-  // Method 2: resources/app.asar (Linux/macOS) — check if we backed it up
-  const asarPath = path.join(appDir, "resources", "app.asar");
-  if (fs.existsSync(asarPath)) {
-    const backupPath = asarPath + ".suncord-backup";
-    return { patched: fs.existsSync(backupPath) };
-  }
-
-  return { patched: false };
+function isPatched(resourcesDir) {
+  return fs.existsSync(path.join(resourcesDir, "_app.asar"));
 }
 
-function patchDiscord(discordEntry) {
-  const { appDir } = discordEntry;
+// ── Patching ──
 
-  // Method 1: discord_desktop_core/index.js (Windows)
-  const coreIndex = path.join(appDir, "discord_desktop_core", "index.js");
-  if (fs.existsSync(coreIndex)) {
-    return patchCoreIndex(coreIndex);
+function getSuncordDist() {
+  // When packaged as app: resources/app.asar.asar.unpacked or similar
+  // When running in dev: ../../dist
+  const candidates = [
+    path.join(process.resourcesPath, "suncord"),
+    path.join(__dirname, "..", "..", "dist"),
+    path.join(process.env.HOME || "", ".local/share/suncord"),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(path.join(p, "patcher.js"))) return p;
   }
-
-  // Method 2: resources/app.asar (Linux/macOS)
-  const asarPath = path.join(appDir, "resources", "app.asar");
-  if (fs.existsSync(asarPath)) {
-    return patchAsar(asarPath);
-  }
-
-  return { success: false, error: "No patchable Discord file found (tried discord_desktop_core/index.js and resources/app.asar)" };
+  return null;
 }
 
-function patchCoreIndex(coreIndex) {
-  try {
-    const original = fs.readFileSync(coreIndex, "utf-8");
+function patchDiscord(resourcesDir) {
+  const asarPath = path.join(resourcesDir, "app.asar");
+  const backupPath = path.join(resourcesDir, "_app.asar");
 
-    // Backup
-    const backupPath = coreIndex + ".suncord-backup";
-    if (!fs.existsSync(backupPath)) {
-      fs.writeFileSync(backupPath, original, "utf-8");
-    }
-
-    // Find suncord dist path
-    const distPath = findSuncordDist();
-
-    // Check if already patched
-    if (original.includes("SUNCORD INJECTED")) {
-      return { success: true, alreadyPatched: true };
-    }
-
-    const loader = `\n// SUNCORD INJECTED — DO NOT EDIT\ntry {\n  const suncordPath = ${JSON.stringify(distPath)};\n  require(require('path').join(suncordPath, 'injector.js'));\n} catch (e) {\n  console.error('[Suncord] Failed to load:', e.message);\n}\n`;
-
-    fs.writeFileSync(coreIndex, original + loader, "utf-8");
-    return { success: true };
-  } catch (e) {
-    return { success: false, error: e.message };
+  if (!fs.existsSync(asarPath)) {
+    return { success: false, error: "app.asar not found" };
   }
-}
 
-function patchAsar(asarPath) {
-  const backupPath = asarPath + ".suncord-backup";
+  // Already patched — restore first
+  if (fs.existsSync(backupPath)) {
+    fs.copyFileSync(backupPath, asarPath);
+  }
 
   // Backup original
-  if (!fs.existsSync(backupPath)) {
-    fs.copyFileSync(asarPath, backupPath);
+  fs.copyFileSync(asarPath, backupPath);
+
+  // Find dist files
+  const distPath = getSuncordDist();
+  if (!distPath) {
+    return { success: false, error: "Suncord dist files not found" };
   }
 
-  // Check if already patched
-  const markerPath = asarPath + ".suncord-patched";
-  if (fs.existsSync(markerPath)) {
-    return { success: true, alreadyPatched: true };
-  }
-
+  // Create stub asar
+  const stubDir = fs.mkdtempSync(path.join(os.tmpdir(), "suncord-stub-"));
   try {
-    // Extract asar
-    const tmpDir = path.join(require("os").tmpdir(), "suncord-patch-" + Date.now());
-    asar.extractAll(asarPath, tmpDir);
+    fs.writeFileSync(path.join(stubDir, "package.json"), '{"name":"discord","main":"index.js"}');
+    fs.writeFileSync(path.join(stubDir, "index.js"),
+      `require(${JSON.stringify(path.join(distPath, "patcher.js"))});`
+    );
 
-    // Find main JS file
-    const files = fs.readdirSync(tmpDir);
-    const mainFile = files.find((f) => f.endsWith(".js") && !f.includes("node_modules"));
+    // Remove old asar, pack new stub
+    fs.unlinkSync(asarPath);
+    execSync(`npx @electron/asar pack "${stubDir}" "${asarPath}"`, { stdio: "ignore" });
 
-    if (!mainFile) {
-      fs.rmSync(tmpDir, { recursive: true, force: true });
-      return { success: false, error: "Could not find main JS file in app.asar" };
+    if (!fs.existsSync(asarPath)) {
+      // Restore on failure
+      fs.copyFileSync(backupPath, asarPath);
+      return { success: false, error: "Failed to create stub asar" };
     }
 
-    // Find suncord dist path
-    const distPath = findSuncordDist();
-    const mainPath = path.join(tmpDir, mainFile);
-    const original = fs.readFileSync(mainPath, "utf-8");
-
-    // Prepend injector
-    const loader = `// SUNCORD INJECTED — DO NOT EDIT\ntry {\n  const suncordPath = ${JSON.stringify(distPath)};\n  require(require('path').join(suncordPath, 'injector.js'));\n} catch (e) {\n  console.error('[Suncord] Failed to load:', e.message);\n}\n`;
-    fs.writeFileSync(mainPath, loader + original, "utf-8");
-
-    // Repack
-    asar.createPackage(tmpDir, asarPath);
-
-    // Mark as patched
-    fs.writeFileSync(markerPath, new Date().toISOString(), "utf-8");
-
-    // Cleanup
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-
     return { success: true };
-  } catch (e) {
-    return { success: false, error: e.message };
+  } finally {
+    fs.rmSync(stubDir, { recursive: true, force: true });
   }
 }
 
-function unpatchDiscord(discordEntry) {
-  const { appDir } = discordEntry;
+function unpatchDiscord(resourcesDir) {
+  const asarPath = path.join(resourcesDir, "app.asar");
+  const backupPath = path.join(resourcesDir, "_app.asar");
 
-  // Method 1: discord_desktop_core/index.js
-  const coreIndex = path.join(appDir, "discord_desktop_core", "index.js");
-  const coreBackup = coreIndex + ".suncord-backup";
-  if (fs.existsSync(coreBackup)) {
-    fs.copyFileSync(coreBackup, coreIndex);
-    fs.unlinkSync(coreBackup);
-    return { success: true };
-  }
-
-  // Method 2: resources/app.asar
-  const asarPath = path.join(appDir, "resources", "app.asar");
-  const asarBackup = asarPath + ".suncord-backup";
-  const markerPath = asarPath + ".suncord-patched";
-  if (fs.existsSync(asarBackup)) {
-    fs.copyFileSync(asarBackup, asarPath);
-    fs.unlinkSync(asarBackup);
-    if (fs.existsSync(markerPath)) fs.unlinkSync(markerPath);
+  if (fs.existsSync(backupPath)) {
+    fs.copyFileSync(backupPath, asarPath);
+    fs.unlinkSync(backupPath);
     return { success: true };
   }
 
   return { success: false, error: "No Suncord backup found" };
 }
 
-function findSuncordDist() {
-  // Check common locations for suncord dist
-  const candidates = [
-    path.join(__dirname, "..", "..", "dist"),
-    path.join(__dirname, "..", "dist"),
-    "/usr/lib/suncord",
-    "/usr/share/suncord",
-    path.join(process.env.HOME || "", ".local/share/suncord"),
-  ];
-
-  for (const p of candidates) {
-    if (fs.existsSync(path.join(p, "index.js"))) return p;
-  }
-
-  // Fallback: use __dirname relative
-  return path.join(__dirname, "..", "..", "dist");
-}
+// ── Helpers ──
 
 function killDiscord() {
   try {
@@ -364,11 +192,11 @@ function killDiscord() {
   } catch {}
 }
 
-function launchDiscord(discordEntry) {
+function launchDiscord(entry) {
   try {
-    const { path: discordPath } = discordEntry;
     if (process.platform === "win32") {
-      const exe = path.join(discordPath, "Update.exe");
+      const discordDir = path.dirname(entry.resources);
+      const exe = path.join(discordDir, "Update.exe");
       if (fs.existsSync(exe)) {
         spawn(exe, ["--processStart", "Discord.exe"], { detached: true, stdio: "ignore" }).unref();
       }
@@ -380,57 +208,53 @@ function launchDiscord(discordEntry) {
   } catch {}
 }
 
-// ── IPC Handlers ──
+// ── Window ──
 
-ipcMain.handle("detect-discord", () => {
-  return getDiscordPaths();
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 600,
+    height: 520,
+    resizable: false,
+    frame: false,
+    titleBarStyle: "hidden",
+    transparent: true,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, "preload.js"),
+    },
+  });
+  mainWindow.loadFile(path.join(__dirname, "index.html"));
+}
+
+app.whenReady().then(createWindow);
+app.on("window-all-closed", () => app.quit());
+
+// ── IPC ──
+
+ipcMain.handle("detect-discord", () => getDiscordPaths());
+
+ipcMain.handle("check-patched", (_, resourcesDir) => {
+  return { patched: isPatched(resourcesDir) };
 });
 
-ipcMain.handle("check-patched", (_, discordPath) => {
-  const entry = getDiscordPaths().find((d) => d.path === discordPath);
-  if (!entry) return { patched: false, error: "Discord not found" };
-  return getPatchedState(entry.path, entry.appDir);
-});
-
-ipcMain.handle("install-suncord", async (_, discordPath) => {
-  const entry = getDiscordPaths().find((d) => d.path === discordPath);
-  if (!entry) return { success: false, error: "Discord not found" };
-
-  // Kill Discord first
+ipcMain.handle("install-suncord", async (_, resourcesDir) => {
   killDiscord();
-
-  // Small delay for process to die
-  await new Promise((r) => setTimeout(r, 1000));
-
-  const result = patchDiscord(entry);
-  return result;
+  await new Promise(r => setTimeout(r, 1500));
+  return patchDiscord(resourcesDir);
 });
 
-ipcMain.handle("uninstall-suncord", async (_, discordPath) => {
-  const entry = getDiscordPaths().find((d) => d.path === discordPath);
-  if (!entry) return { success: false, error: "Discord not found" };
-
+ipcMain.handle("uninstall-suncord", async (_, resourcesDir) => {
   killDiscord();
-  await new Promise((r) => setTimeout(r, 1000));
-
-  return unpatchDiscord(entry);
+  await new Promise(r => setTimeout(r, 1500));
+  return unpatchDiscord(resourcesDir);
 });
 
-ipcMain.handle("launch-discord", (_, discordPath) => {
-  const entry = getDiscordPaths().find((d) => d.path === discordPath);
-  if (!entry) return { success: false };
-  launchDiscord(entry);
+ipcMain.handle("launch-discord", (_, resourcesDir) => {
+  const entry = getDiscordPaths().find(d => d.resources === resourcesDir);
+  if (entry) launchDiscord(entry);
   return { success: true };
 });
 
-ipcMain.handle("open-path", (_, p) => {
-  shell.showItemInFolder(p);
-});
-
-ipcMain.handle("open-url", (_, url) => {
-  shell.openExternal(url);
-});
-
-ipcMain.handle("get-platform", () => {
-  return process.platform;
-});
+ipcMain.handle("open-url", (_, url) => shell.openExternal(url));
+ipcMain.handle("get-platform", () => process.platform);

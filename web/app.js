@@ -1,106 +1,85 @@
 // Suncord Landing Page — Platform logic
 
+const REPO = "Sunny-son-sahur/suncord";
+const GITHUB_BASE = `https://github.com/${REPO}/releases/latest/download`;
+const SITE_BASE = "https://sunny-son-sahur.github.io/suncord";
+
 const PLATFORMS = {
   windows: {
     label: "Windows",
-    fileName: "suncord-windows.zip",
-    fileType: "Portable zip",
     version: "v1.0.0",
     note: "Windows 10/11",
+    fileType: "GUI Installer",
+    fileName: "SuncordInstaller.exe",
     instructions: `
       <h3>Install on Windows</h3>
       <ol>
-        <li>Download the <strong>zip file</strong> above.</li>
-        <li>Extract it to a folder — e.g. <code>C:\\Suncord</code></li>
-        <li><strong>Close Discord</strong> completely (check system tray).</li>
-        <li>Open a terminal in the extracted folder and run:
-          <br><code>node dist/injector.js</code>
-        </li>
-        <li>Discord will launch with Suncord loaded.</li>
+        <li>Click the download button above to get <strong>SuncordInstaller.exe</strong>.</li>
+        <li>Run the installer.</li>
+        <li>Select your Discord installation (auto-detected).</li>
+        <li>Click <strong>Install</strong>.</li>
+        <li>Restart Discord.</li>
       </ol>
       <div class="note">
-        <strong>Tip:</strong> Create a <code>suncord-launcher.bat</code> in the folder so you can double-click to launch.
+        <strong>To uninstall:</strong> Open the installer again and click <strong>Uninstall</strong>.
       </div>
     `
   },
   linux: {
     label: "Linux",
-    fileName: "suncord_1.0.0_amd64.deb",
-    fileType: ".deb package",
     version: "v1.0.0",
-    note: "Debian/Ubuntu — AMD64",
+    note: "Any distro with Discord",
+    fileType: null,
+    installCmd: `sh -c "$(curl -sS ${SITE_BASE}/install.sh)"`,
     instructions: `
       <h3>Install on Linux</h3>
-      <p style="color:#b9bbbe;margin-bottom:12px;">Pick your distro:</p>
+      <p>Open a terminal and paste this:</p>
+      <div class="code-block">
+        <code>sh -c "$(curl -sS ${SITE_BASE}/install.sh)"</code>
+      </div>
+      <p style="margin-top:12px;color:#b9bbbe;">That's it. It finds Discord, backs up the original, and patches it.</p>
 
-      <h4 style="color:#dcddde;margin-bottom:8px;">Ubuntu / Debian</h4>
-      <ol>
-        <li>Download the <strong>.deb</strong> above.</li>
-        <li>Install: <code>sudo dpkg -i suncord_1.0.0_amd64.deb</code></li>
-        <li>Fix deps: <code>sudo apt-get install -f</code></li>
-        <li>Run: <code>suncord</code></li>
-      </ol>
-
-      <h4 style="color:#dcddde;margin:16px 0 8px;">Fedora / Nobara</h4>
-      <ol>
-        <li>Download the <strong>.rpm</strong> from the release page.</li>
-        <li>Install: <code>sudo dnf install ./suncord-1.0.0-1.*.rpm</code></li>
-        <li>Run: <code>suncord</code></li>
-      </ol>
-
-      <h4 style="color:#dcddde;margin:16px 0 8px;">Arch / Manjaro</h4>
-      <ol>
-        <li>Download the <strong>.pkg.tar.zst</strong> from the release page.</li>
-        <li>Install: <code>sudo pacman -U suncord-1.0.0-1-x86_64.pkg.tar.zst</code></li>
-        <li>Run: <code>suncord</code></li>
-      </ol>
-
-      <div class="note">
-        <strong>Also available:</strong> Portable zip — extract and run <code>bash scripts/suncord.sh launch</code> from anywhere.
+      <h4 style="color:#dcddde;margin:20px 0 8px;">To uninstall:</h4>
+      <div class="code-block">
+        <code>curl -sS ${SITE_BASE}/uninstall.sh | sh</code>
       </div>
     `
   },
   mac: {
     label: "Mac",
-    fileName: "suncord-mac.zip",
-    fileType: "Portable zip",
     version: "v1.0.0",
     note: "macOS 12+ — Intel & Apple Silicon",
+    fileType: "GUI Installer",
+    fileName: "SuncordInstaller.dmg",
     instructions: `
       <h3>Install on macOS</h3>
       <ol>
-        <li>Download the <strong>zip file</strong> above.</li>
-        <li>Extract it — double-click the .zip in Finder.</li>
-        <li><strong>Close Discord</strong> completely (Cmd+Q, check dock).</li>
-        <li>Open Terminal, navigate to the extracted folder:
-          <br><code>cd ~/Downloads/suncord</code>
-        </li>
-        <li>Run the loader:
-          <br><code>bash scripts/suncord.sh launch</code>
-        </li>
-        <li>Discord will launch with Suncord loaded.</li>
+        <li>Click the download button above to get <strong>SuncordInstaller.dmg</strong>.</li>
+        <li>Open the .drag and drag <strong>Suncord Installer</strong> to Applications.</li>
+        <li>Open the installer from Applications.</li>
+        <li>Click <strong>Install</strong>.</li>
+        <li>Restart Discord.</li>
       </ol>
       <div class="warning">
-        <strong>macOS security:</strong> If you get "unidentified developer" errors, go to <strong>System Settings → Privacy & Security</strong> and click "Open Anyway". For macOS Sonoma and earlier, right-click the app and select "Open".
+        <strong>macOS security:</strong> If you get "unidentified developer" errors, right-click the app and select "Open", or go to <strong>System Settings → Privacy & Security</strong> and click "Open Anyway".
       </div>
     `
   },
   browser: {
     label: "Browser",
-    fileName: null,
-    fileType: "Userscript",
     version: "v1.0.0",
     note: "Via Discord Web",
+    fileType: "Userscript",
     instructions: `
       <h3>Use in Browser</h3>
       <ol>
         <li>Install a userscript manager: <strong>Violentmonkey</strong> or <strong>Tampermonkey</strong>.</li>
-        <li>Click the button above — it links to the raw <code>suncord.user.js</code> file. Your userscript manager will prompt you to install it.</li>
+        <li>Click the button above to install the Suncord userscript.</li>
         <li>Navigate to <strong>discord.com/app</strong>.</li>
-        <li>Suncord will load automatically with the web version.</li>
+        <li>Suncord loads automatically.</li>
       </ol>
       <div class="note">
-        <strong>Note:</strong> Browser support is limited compared to desktop. Some plugins that rely on desktop APIs won't work.
+        <strong>Note:</strong> Browser support is limited compared to desktop.
       </div>
     `
   }
@@ -112,12 +91,11 @@ function detectPlatform() {
   if (ua.includes("win")) return "windows";
   if (ua.includes("mac") || ua.includes("darwin")) return "mac";
   if (ua.includes("linux")) return "linux";
-  return "windows"; // default
+  return "windows";
 }
 
 // State
 let currentPlatform = detectPlatform();
-const GITHUB_BASE = "https://github.com/Sunny-son-sahur/suncord/releases/latest/download";
 
 // DOM
 const tabs = document.querySelectorAll(".tab");
@@ -137,20 +115,66 @@ function updateUI(platform) {
 
   // Update download button
   if (p.fileName) {
+    // Direct download from GitHub releases
     downloadBtn.href = `${GITHUB_BASE}/${p.fileName}`;
     downloadBtn.style.display = "inline-flex";
     downloadText.textContent = `Download Suncord for ${p.label}`;
     downloadMeta.textContent = `${p.version} — ${p.note} — ${p.fileType}`;
+  } else if (p.installCmd) {
+    // Linux — copy-to-clipboard
+    downloadBtn.href = "#";
+    downloadBtn.style.display = "inline-flex";
+    downloadText.textContent = `Install Suncord on ${p.label}`;
+    downloadMeta.textContent = `${p.version} — ${p.note} — Copy command to terminal`;
+
+    downloadBtn.onclick = (e) => {
+      e.preventDefault();
+      navigator.clipboard.writeText(p.installCmd).then(() => {
+        downloadText.textContent = "Copied! Paste in terminal";
+        setTimeout(() => {
+          downloadText.textContent = `Install Suncord on ${p.label}`;
+        }, 2000);
+      }).catch(() => {
+        // Fallback: select text
+        const ta = document.createElement("textarea");
+        ta.value = p.installCmd;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        downloadText.textContent = "Copied! Paste in terminal";
+        setTimeout(() => {
+          downloadText.textContent = `Install Suncord on ${p.label}`;
+        }, 2000);
+      });
+    };
   } else {
-    // Browser — link to raw userscript
-    downloadBtn.href = "https://raw.githubusercontent.com/Sunny-son-sahur/suncord/main/scripts/suncord.user.js";
+    // Browser — userscript
+    downloadBtn.href = `https://raw.githubusercontent.com/${REPO}/main/scripts/suncord.user.js`;
     downloadBtn.style.display = "inline-flex";
     downloadText.textContent = "Get Suncord Userscript";
     downloadMeta.textContent = `${p.version} — ${p.note} — ${p.fileType}`;
+    downloadBtn.onclick = null;
   }
 
   // Update instructions
   instructionContent.innerHTML = p.instructions;
+
+  // Add copy button to code blocks
+  instructionContent.querySelectorAll(".code-block").forEach(block => {
+    block.style.cursor = "pointer";
+    block.title = "Click to copy";
+    block.addEventListener("click", () => {
+      const code = block.querySelector("code");
+      if (code) {
+        navigator.clipboard.writeText(code.textContent).then(() => {
+          const orig = block.style.outline;
+          block.style.outline = "2px solid #f0b232";
+          setTimeout(() => { block.style.outline = orig; }, 500);
+        });
+      }
+    });
+  });
 }
 
 // Tab click handlers

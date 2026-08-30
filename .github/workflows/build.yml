@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-linux:
-    name: "Linux Build"
+  build-core:
+    name: "Build Core"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,108 +19,22 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-      - name: Build .deb
-        run: |
-          mkdir -p release/suncord_1.0.0_amd64/DEBIAN
-          mkdir -p release/suncord_1.0.0_amd64/usr/lib/suncord
-          mkdir -p release/suncord_1.0.0_amd64/usr/share/applications
-          cat > release/suncord_1.0.0_amd64/DEBIAN/control << 'DEBEOF'
-          Package: suncord
-          Version: 1.0.0
-          Section: net
-          Priority: optional
-          Architecture: amd64
-          Depends: discord
-          Maintainer: SUNCORD Team
-          Description: Discord client mod with drag-and-drop plugin store
-          DEBEOF
-          cp -r dist/* release/suncord_1.0.0_amd64/usr/lib/suncord/
-          cp scripts/suncord.sh release/suncord_1.0.0_amd64/usr/lib/suncord/
-          chmod 755 release/suncord_1.0.0_amd64/usr/lib/suncord/suncord.sh
-          dpkg-deb --build release/suncord_1.0.0_amd64 release/suncord_1.0.0_amd64.deb
-
-      - name: Build portable zip
-        run: cd dist && zip -r ../release/suncord-portable.zip .
-
-      - name: Build .rpm (Fedora/Nobara)
-        run: |
-          sudo apt-get update && sudo apt-get install -y rpm
-          mkdir -p release/rpmbuild/{SOURCES,SPECS}
-          tar czf release/rpmbuild/SOURCES/suncord-1.0.0.tar.gz --transform='s,^,suncord-1.0.0/,' dist/ scripts/ build/suncord.spec
-          rpmbuild -bb --define "_topdir $(pwd)/release/rpmbuild" build/suncord.spec
-          cp release/rpmbuild/RPMS/x86_64/*.rpm release/ 2>/dev/null || true
-
-      - name: Build .pkg.tar.zst (Arch)
-        run: |
-          sudo pacman -Sy --noconfirm base-devel 2>/dev/null || true
-          mkdir -p release/arch
-          cat > release/arch/PKGBUILD << 'PKGEOF'
-          # Maintainer: SUNCORD Team
-          pkgname=suncord
-          pkgver=1.0.0
-          pkgrel=1
-          pkgdesc="Discord client mod with plugin and theme store"
-          arch=('x86_64')
-          url="https://github.com/Sunny-son-sahur/suncord"
-          license=('MIT')
-          depends=('discord' 'nodejs')
-          source=()
-          package() {
-            mkdir -p "$pkgdir/usr/lib/suncord"
-            cp -r "$startdir/../../../../dist/"* "$pkgdir/usr/lib/suncord/"
-            install -m 755 "$startdir/../../../../scripts/suncord.sh" "$pkgdir/usr/lib/suncord/suncord.sh"
-            mkdir -p "$pkgdir/usr/bin"
-            ln -sf /usr/lib/suncord/suncord.sh "$pkgdir/usr/bin/suncord"
-            mkdir -p "$pkgdir/usr/share/applications"
-            cat > "$pkgdir/usr/share/applications/suncord.desktop" << 'DESKEOF'
-          [Desktop Entry]
-          Name=SUNCORD
-          Comment=Discord client mod with drag-and-drop plugin store
-          Exec=/usr/lib/suncord/suncord.sh launch
-          Icon=suncord
-          Type=Application
-          Categories=Network;InstantMessaging;
-          StartupWMClass=discord
-          DESKEOF
-          }
-          PKGEOF
-          cd release/arch && makepkg -f --skipinteg 2>/dev/null || true
-          cp release/arch/*.pkg.tar.zst release/ 2>/dev/null || true
-
       - uses: actions/upload-artifact@v4
         with:
-          name: linux-builds
-          path: release/*
-          retention-days: 30
-
-  build-windows:
-    name: "Windows Build"
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-      - run: npm ci
-      - run: npm run build
-
-      - name: Build portable zip
-        run: |
-          New-Item -ItemType Directory -Force -Path release
-          Compress-Archive -Path dist/* -DestinationPath release/suncord-windows.zip
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows-builds
-          path: release/*
+          name: core-dist
+          path: dist/
           retention-days: 30
 
   build-installer-win:
     name: "Installer — Windows"
+    needs: build-core
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: core-dist
+          path: dist/
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -130,44 +44,23 @@ jobs:
         working-directory: installer
       - run: npm run build:win
         working-directory: installer
-      - name: Move installer to root
-        run: Move-Item -Path "installer\release\*.exe" -Destination "." -ErrorAction SilentlyContinue
       - uses: actions/upload-artifact@v4
         with:
           name: installer-windows
-          path: "*.exe"
-          if-no-files-found: warn
-          retention-days: 30
-
-  build-installer-linux:
-    name: "Installer — Linux"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: installer/package-lock.json
-      - run: sudo apt-get update && sudo apt-get install -y libarchive-tools rpm
-      - run: npm ci
-        working-directory: installer
-      - run: npm run build:linux
-        working-directory: installer
-      - name: Move installer to root
-        run: mv installer/release/*.AppImage . 2>/dev/null || true
-      - uses: actions/upload-artifact@v4
-        with:
-          name: installer-linux
-          path: "*.AppImage"
+          path: installer/release/*.exe
           if-no-files-found: warn
           retention-days: 30
 
   build-installer-mac:
     name: "Installer — macOS"
+    needs: build-core
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: core-dist
+          path: dist/
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -177,18 +70,16 @@ jobs:
         working-directory: installer
       - run: npm run build:mac
         working-directory: installer
-      - name: Move installer to root
-        run: mv installer/release/*.dmg . 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         with:
           name: installer-mac
-          path: "*.dmg"
+          path: installer/release/*.dmg
           if-no-files-found: warn
           retention-days: 30
 
   deploy-site:
     name: "Deploy Landing Page"
-    needs: [build-linux, build-windows]
+    needs: build-core
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -207,7 +98,7 @@ jobs:
 
   release:
     name: "Create Release"
-    needs: [build-linux, build-windows, build-installer-win, build-installer-linux, build-installer-mac]
+    needs: [build-core, build-installer-win, build-installer-mac]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
@@ -217,13 +108,14 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: release
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            release/linux-builds/*
-            release/windows-builds/*
+            release/core-dist/patcher.js
+            release/core-dist/renderer.js
+            release/core-dist/preload.cjs
             release/installer-windows/*
-            release/installer-linux/*
             release/installer-mac/*
           generate_release_notes: true
