@@ -40,5 +40,8 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
     }
+  },
+  "dependencies": {
+    "@electron/asar": "^4.3.0"
   }
 }

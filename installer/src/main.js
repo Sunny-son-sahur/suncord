@@ -5,6 +5,7 @@ const { app, BrowserWindow, ipcMain, shell } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const { execSync, spawn } = require("child_process");
+const asar = require("@electron/asar");
 
 let mainWindow;
 
@@ -262,8 +263,7 @@ function patchAsar(asarPath) {
     fs.copyFileSync(asarPath, backupPath);
   }
 
-  // Check if already patched (by looking at backup existence)
-  // We use a marker file instead
+  // Check if already patched
   const markerPath = asarPath + ".suncord-patched";
   if (fs.existsSync(markerPath)) {
     return { success: true, alreadyPatched: true };
@@ -272,7 +272,7 @@ function patchAsar(asarPath) {
   try {
     // Extract asar
     const tmpDir = path.join(require("os").tmpdir(), "suncord-patch-" + Date.now());
-    execSync(`npx asar extract "${asarPath}" "${tmpDir}"`, { stdio: "pipe" });
+    asar.extractAll(asarPath, tmpDir);
 
     // Find main JS file
     const files = fs.readdirSync(tmpDir);
@@ -293,7 +293,7 @@ function patchAsar(asarPath) {
     fs.writeFileSync(mainPath, loader + original, "utf-8");
 
     // Repack
-    execSync(`npx asar pack "${tmpDir}" "${asarPath}"`, { stdio: "pipe" });
+    asar.createPackage(tmpDir, asarPath);
 
     // Mark as patched
     fs.writeFileSync(markerPath, new Date().toISOString(), "utf-8");
