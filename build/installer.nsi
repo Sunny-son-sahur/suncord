@@ -23,12 +23,6 @@ VIAddVersionKey "FileVersion" "1.0.0"
 
 ; ---- Interface Settings ----
 !define MUI_ABORTWARNING
-!define MUI_ICON "build\icon.ico"
-!define MUI_UNICON "build\icon.ico"
-!define MUI_HEADERIMAGE
-!define MUI_HEADERIMAGE_BITMAP "build\header.bmp" ; optional
-!define MUI_WELCOMEFINISHPAGE_BITMAP "build\wizard.bmp" ; optional
-!define MUI_UNWELCOMEFINISHPAGE_BITMAP "build\wizard.bmp"
 
 ; ---- Welcome Page ----
 !define MUI_WELCOMEPAGE_TITLE "Welcome to SUNCORD Installer"
@@ -110,13 +104,11 @@ Section "SUNCORD Core (required)" SecCore
 
   ; Create Start Menu shortcut
   CreateDirectory "$SMPROGRAMMS\SUNCORD"
-  CreateShortCut "$SMPROGRAMMS\SUNCORD\SUNCORD.lnk" "$INSTDIR\suncord-launcher.bat" \
-    "" "$INSTDIR\icon.ico"
+  CreateShortCut "$SMPROGRAMMS\SUNCORD\SUNCORD.lnk" "$INSTDIR\suncord-launcher.bat"
   CreateShortCut "$SMPROGRAMMS\SUNCORD\Uninstall.lnk" "$INSTDIR\uninstall.exe"
 
   ; Create desktop shortcut
-  CreateShortCut "$DESKTOP\SUNCORD.lnk" "$INSTDIR\suncord-launcher.bat" \
-    "" "$INSTDIR\icon.ico"
+  CreateShortCut "$DESKTOP\SUNCORD.lnk" "$INSTDIR\suncord-launcher.bat"
 
   ; Create launcher batch file
   FileOpen $0 "$INSTDIR\suncord-launcher.bat" w
