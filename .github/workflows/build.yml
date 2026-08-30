@@ -71,9 +71,70 @@ jobs:
           path: release/*
           retention-days: 30
 
+  build-installer-win:
+    name: "Installer — Windows"
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: installer/package-lock.json
+      - run: npm ci
+        working-directory: installer
+      - run: npm run build:win
+        working-directory: installer
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-windows
+          path: installer/release/*.exe
+          retention-days: 30
+
+  build-installer-linux:
+    name: "Installer — Linux"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: installer/package-lock.json
+      - run: sudo apt-get update && sudo apt-get install -y libarchive-tools rpm
+      - run: npm ci
+        working-directory: installer
+      - run: npm run build:linux
+        working-directory: installer
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-linux
+          path: installer/release/*.AppImage
+          retention-days: 30
+
+  build-installer-mac:
+    name: "Installer — macOS"
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: installer/package-lock.json
+      - run: npm ci
+        working-directory: installer
+      - run: npm run build:mac
+        working-directory: installer
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-mac
+          path: installer/release/*.dmg
+          retention-days: 30
+
   deploy-site:
     name: "Deploy Landing Page"
-    needs: [build-linux, build-windows]
+    needs: [build-linux, build-windows, build-installer-win, build-installer-linux, build-installer-mac]
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -92,7 +153,7 @@ jobs:
 
   release:
     name: "Create Release"
-    needs: [build-linux, build-windows]
+    needs: [build-linux, build-windows, build-installer-win, build-installer-linux, build-installer-mac]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
@@ -108,4 +169,7 @@ jobs:
           files: |
             release/linux-builds/*
             release/windows-builds/*
+            release/installer-windows/*
+            release/installer-linux/*
+            release/installer-mac/*
           generate_release_notes: true
