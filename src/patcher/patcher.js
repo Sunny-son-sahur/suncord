@@ -1,29 +1,46 @@
 // SUNCORD Patcher — Vencord-style injection
-// Replaces the stub app.asar, loads original Discord, injects our renderer
+// This runs from the stub app.asar. require.main points to our stub.
 
 const { app, BrowserWindow } = require("electron");
-const path = require("path");
+const { dirname, join } = require("path");
 const fs = require("fs");
+const Module = require("module");
 
-const DIST = path.join(__dirname);
-const RENDERER_PATH = path.join(DIST, "renderer.js");
-const ORIGINAL_ASAR = path.join(
-  path.dirname(require.main.filename),
-  "_app.asar"
-);
+const DIST = join(__dirname);
+const RENDERER_PATH = join(DIST, "renderer.js");
 
-// Where Suncord stores its data
-const SUNCORD_DATA = path.join(app.getPath("userData"), "..", "SUNCORD");
+// --- Step 1: Find original Discord asar ---
+// require.main.filename = resources/app.asar/index.js
+// dirname = resources/app.asar
+// .. goes to resources/ where _app.asar lives
+console.log("[Suncord] require.main.filename:", require.main.filename);
+console.log("[Suncord] require.main.path:", require.main.path);
+const injectorDir = dirname(require.main.filename);
+const asarName = require.main.path.endsWith("app.asar") ? "_app.asar" : "app.asar";
+const asarPath = join(injectorDir, "..", asarName);
+console.log("[Suncord] Looking for original at:", asarPath);
 
-// Ensure Suncord directories exist
-function ensureDirs() {
-  for (const sub of ["plugins", "themes", "store"]) {
-    const dir = path.join(SUNCORD_DATA, sub);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  }
+if (!fs.existsSync(asarPath)) {
+  console.error("[Suncord] Original asar not found:", asarPath);
+  process.exit(1);
 }
 
-// Inject renderer.js into a window
+// --- Step 2: Point Node at the original Discord entry ---
+const discordPkg = require(join(asarPath, "package.json"));
+require.main.filename = join(asarPath, discordPkg.main);
+require.main.paths = Module._nodeModulePaths(dirname(require.main.filename));
+
+// Tell Electron this is the app path
+app.setAppPath(asarPath);
+
+// --- Step 3: Suncord data directory ---
+const SUNCORD_DATA = join(app.getPath("userData"), "..", "SUNCORD");
+for (const sub of ["plugins", "themes", "store"]) {
+  const dir = join(SUNCORD_DATA, sub);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
+
+// --- Step 4: Hook BrowserWindow to inject our renderer ---
 function injectRenderer(win) {
   win.webContents.on("did-finish-load", () => {
     try {
@@ -37,23 +54,8 @@ function injectRenderer(win) {
   });
 }
 
-// --- MAIN ---
-// Set up so Discord loads from the original _app.asar
-if (fs.existsSync(ORIGINAL_ASAR)) {
-  require.main.filename = ORIGINAL_ASAR;
-  require.main.paths = require("module")._nodeModulePaths(path.dirname(ORIGINAL_ASAR));
-}
-
-ensureDirs();
-
-// Hook window creation
 app.on("browser-window-created", (_, win) => injectRenderer(win));
 
-// Hook already-created windows
-app.on("ready", () => {
-  setTimeout(() => {
-    BrowserWindow.getAllWindows().forEach(injectRenderer);
-  }, 1000);
-});
-
-console.log("[SUNCORD] Patcher loaded");
+// --- Step 5: Load original Discord ---
+console.log("[Suncord] Loading Discord from", asarPath);
+require(require.main.filename);
