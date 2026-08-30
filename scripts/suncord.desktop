@@ -1,8 +1,0 @@
-[Desktop Entry]
-Name=SUNCORD
-Comment=Discord client mod with drag-and-drop plugin store
-Exec=suncord.sh launch
-Icon=suncord
-Type=Application
-Categories=Network;InstantMessaging;
-StartupWMClass=discord

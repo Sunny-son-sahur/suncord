@@ -83,10 +83,7 @@ const PLATFORMS = {
       <h3>Use in Browser</h3>
       <ol>
         <li>Install a userscript manager: <strong>Violentmonkey</strong> or <strong>Tampermonkey</strong>.</li>
-        <li>Open the Suncord userscript file from the GitHub repo:
-          <br><code>scripts/suncord.user.js</code>
-        </li>
-        <li>Click "Install" in your userscript manager.</li>
+        <li>Click the button above — it links to the raw <code>suncord.user.js</code> file. Your userscript manager will prompt you to install it.</li>
         <li>Navigate to <strong>discord.com/app</strong>.</li>
         <li>Suncord will load automatically with the web version.</li>
       </ol>
@@ -133,8 +130,8 @@ function updateUI(platform) {
     downloadText.textContent = `Download Suncord for ${p.label}`;
     downloadMeta.textContent = `${p.version} — ${p.note} — ${p.fileType}`;
   } else {
-    // Browser — link to GitHub repo
-    downloadBtn.href = "https://github.com/Sunny-son-sahur/suncord/tree/main/scripts";
+    // Browser — link to raw userscript
+    downloadBtn.href = "https://raw.githubusercontent.com/Sunny-son-sahur/suncord/main/scripts/suncord.user.js";
     downloadBtn.style.display = "inline-flex";
     downloadText.textContent = "Get Suncord Userscript";
     downloadMeta.textContent = `${p.version} — ${p.note} — ${p.fileType}`;
