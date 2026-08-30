@@ -26,23 +26,19 @@
       "src/**/*"
     ],
     "win": {
-      "target": "nsis",
-      "icon": "src/icon.ico"
+      "target": "nsis"
     },
     "mac": {
       "target": "dmg",
-      "icon": "src/icon.icns",
       "category": "public.app-category.utilities"
     },
     "linux": {
       "target": "AppImage",
-      "icon": "src/icon.png",
       "category": "Utility"
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "installerIcon": "src/icon.ico"
+      "allowToChangeInstallationDirectory": true
     }
   }
 }
