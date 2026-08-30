@@ -4,10 +4,16 @@ name: Build & Release
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main, dev, master]
     tags: ["v*"]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      build_all:
+        description: "Build all platforms"
+        required: false
+        default: "true"
 
 jobs:
   build-linux:
