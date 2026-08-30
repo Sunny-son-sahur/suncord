@@ -246,7 +246,7 @@ function patchCoreIndex(coreIndex) {
       return { success: true, alreadyPatched: true };
     }
 
-    const loader = `\n// SUNCORD INJECTED — DO NOT EDIT\ntry {\n  const suncordPath = ${JSON.stringify(distPath)};\n  require(require('path').join(suncordPath, 'index.js'));\n} catch (e) {\n  console.error('[Suncord] Failed to load:', e.message);\n}\n`;
+    const loader = `\n// SUNCORD INJECTED — DO NOT EDIT\ntry {\n  const suncordPath = ${JSON.stringify(distPath)};\n  require(require('path').join(suncordPath, 'injector.js'));\n} catch (e) {\n  console.error('[Suncord] Failed to load:', e.message);\n}\n`;
 
     fs.writeFileSync(coreIndex, original + loader, "utf-8");
     return { success: true };
@@ -289,7 +289,7 @@ function patchAsar(asarPath) {
     const original = fs.readFileSync(mainPath, "utf-8");
 
     // Prepend injector
-    const loader = `// SUNCORD INJECTED — DO NOT EDIT\ntry {\n  const suncordPath = ${JSON.stringify(distPath)};\n  require(require('path').join(suncordPath, 'index.js'));\n} catch (e) {\n  console.error('[Suncord] Failed to load:', e.message);\n}\n`;
+    const loader = `// SUNCORD INJECTED — DO NOT EDIT\ntry {\n  const suncordPath = ${JSON.stringify(distPath)};\n  require(require('path').join(suncordPath, 'injector.js'));\n} catch (e) {\n  console.error('[Suncord] Failed to load:', e.message);\n}\n`;
     fs.writeFileSync(mainPath, loader + original, "utf-8");
 
     // Repack
