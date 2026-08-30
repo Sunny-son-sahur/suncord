@@ -1,0 +1,32 @@
+# Maintainer: SUNCORD Team <team@suncord.dev>
+pkgname=suncord
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Discord client mod with plugin and theme store"
+arch=('x86_64')
+url="https://github.com/Sunny-son-sahur/suncord"
+license=('MIT')
+depends=('discord' 'nodejs')
+source=("$url/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+  mkdir -p "$pkgdir/usr/lib/suncord"
+  cp -r "$srcdir/suncord-$pkgver/dist/"* "$pkgdir/usr/lib/suncord/"
+  install -m 755 "$srcdir/suncord-$pkgver/scripts/suncord.sh" "$pkgdir/usr/lib/suncord/suncord.sh"
+
+  mkdir -p "$pkgdir/usr/bin"
+  ln -sf /usr/lib/suncord/suncord.sh "$pkgdir/usr/bin/suncord"
+
+  mkdir -p "$pkgdir/usr/share/applications"
+  cat > "$pkgdir/usr/share/applications/suncord.desktop" << 'EOF'
+[Desktop Entry]
+Name=SUNCORD
+Comment=Discord client mod with drag-and-drop plugin store
+Exec=/usr/lib/suncord/suncord.sh launch
+Icon=suncord
+Type=Application
+Categories=Network;InstantMessaging;
+StartupWMClass=discord
+EOF
+}

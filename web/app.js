@@ -31,20 +31,32 @@ const PLATFORMS = {
     note: "Debian/Ubuntu — AMD64",
     instructions: `
       <h3>Install on Linux</h3>
+      <p style="color:#b9bbbe;margin-bottom:12px;">Pick your distro:</p>
+
+      <h4 style="color:#dcddde;margin-bottom:8px;">Ubuntu / Debian</h4>
       <ol>
-        <li>Download the <strong>.deb package</strong> above.</li>
-        <li>Install it:
-          <br><code>sudo dpkg -i suncord_1.0.0_amd64.deb</code>
-        </li>
-        <li>Fix any missing dependencies:
-          <br><code>sudo apt-get install -f</code>
-        </li>
-        <li>Launch from your app menu, or run:
-          <br><code>suncord</code>
-        </li>
+        <li>Download the <strong>.deb</strong> above.</li>
+        <li>Install: <code>sudo dpkg -i suncord_1.0.0_amd64.deb</code></li>
+        <li>Fix deps: <code>sudo apt-get install -f</code></li>
+        <li>Run: <code>suncord</code></li>
       </ol>
+
+      <h4 style="color:#dcddde;margin:16px 0 8px;">Fedora / Nobara</h4>
+      <ol>
+        <li>Download the <strong>.rpm</strong> from the release page.</li>
+        <li>Install: <code>sudo dnf install ./suncord-1.0.0-1.*.rpm</code></li>
+        <li>Run: <code>suncord</code></li>
+      </ol>
+
+      <h4 style="color:#dcddde;margin:16px 0 8px;">Arch / Manjaro</h4>
+      <ol>
+        <li>Download the <strong>.pkg.tar.zst</strong> from the release page.</li>
+        <li>Install: <code>sudo pacman -U suncord-1.0.0-1-x86_64.pkg.tar.zst</code></li>
+        <li>Run: <code>suncord</code></li>
+      </ol>
+
       <div class="note">
-        <strong>Also available:</strong> Grab the portable zip if you prefer no-install. Extract and run <code>bash scripts/suncord.sh launch</code>.
+        <strong>Also available:</strong> Portable zip — extract and run <code>bash scripts/suncord.sh launch</code> from anywhere.
       </div>
     `
   },
