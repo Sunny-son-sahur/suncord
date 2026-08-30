@@ -61,7 +61,9 @@ jobs:
       - run: npm run build
 
       - name: Build portable zip
-        run: Compress-Archive -Path dist/* -DestinationPath release/suncord-windows.zip
+        run: |
+          New-Item -ItemType Directory -Force -Path release
+          Compress-Archive -Path dist/* -DestinationPath release/suncord-windows.zip
 
       - uses: actions/upload-artifact@v4
         with:
