@@ -1,0 +1,43 @@
+/* SUNCORD Theme: Minimal
+ * @name Minimal
+ * @description Clean, minimal Discord theme
+ * @author SUNCORD
+ * @version 1.0
+ */
+
+:root {
+  --sc-font: "Inter", "Segoe UI", sans-serif;
+}
+
+/* Remove clutter */
+[class*="upsell"],
+[class*="premiumPromo"],
+[class*="giftNitroButton"],
+[class*="banner"] {
+  display: none !important;
+}
+
+/* Clean sidebar */
+[class*="sidebar"] {
+  background: transparent !important;
+}
+
+/* Minimal input */
+[class*="channelTextArea"] {
+  border-radius: 12px !important;
+}
+
+/* Subtle hover effects */
+[class*="channel"]:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Thinner scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}

@@ -1,0 +1,25 @@
+{
+  "name": "suncord",
+  "version": "1.0.0",
+  "description": "SUNCORD — Discord client mod with drag-and-drop plugin store and theme browser",
+  "author": "suncord",
+  "license": "MIT",
+  "main": "dist/injector.js",
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "watch": "node esbuild.config.mjs --watch",
+    "inject": "node scripts/inject.mjs",
+    "uninject": "node scripts/uninject.mjs",
+    "package:linux": "node scripts/package-linux.mjs",
+    "package:windows": "node scripts/package-windows.mjs"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0",
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.2.0",
+    "typescript": "^5.3.0"
+  }
+}

@@ -1,0 +1,34 @@
+/* SUNCORD Theme: Sunset
+ * @name Sunset
+ * @description Warm sunset gradient theme for Discord
+ * @author SUNCORD
+ * @version 1.0
+ */
+
+:root {
+  --sc-gradient-start: #f59e0b;
+  --sc-gradient-end: #ef4444;
+}
+
+/* Gradient header */
+[class*="titleBar"],
+[class*="toolbar"] {
+  background: linear-gradient(135deg, var(--sc-gradient-start), var(--sc-gradient-end)) !important;
+}
+
+/* Sidebar tint */
+[class*="sidebar"],
+[class*="guilds"] {
+  background-color: rgba(245, 158, 11, 0.03) !important;
+}
+
+/* Accent color override */
+[class*="colorBrand"],
+a[href] {
+  color: var(--sc-gradient-start) !important;
+}
+
+/* Selection color */
+::selection {
+  background-color: rgba(245, 158, 11, 0.3);
+}

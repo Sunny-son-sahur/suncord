@@ -1,0 +1,233 @@
+# SUNCORD CI/CD — builds Linux packages + Windows installer on every push/release
+
+name: Build & Release
+
+on:
+  push:
+    branches: [main, dev]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-linux:
+    name: "Linux Build"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build SUNCORD
+        run: npm run build
+
+      - name: Package .deb
+        run: |
+          mkdir -p dist/suncord_1.0.0_amd64/DEBIAN
+          mkdir -p dist/suncord_1.0.0_amd64/usr/lib/suncord
+          mkdir -p dist/suncord_1.0.0_amd64/usr/share/applications
+          mkdir -p dist/suncord_1.0.0_amd64/usr/share/icons
+
+          cat > dist/suncord_1.0.0_amd64/DEBIAN/control << EOF
+          Package: suncord
+          Version: 1.0.0
+          Section: net
+          Priority: optional
+          Architecture: amd64
+          Depends: discord
+          Maintainer: SUNCORD Team
+          Description: SUNCORD — Discord client mod with drag-and-drop plugin store
+          SUNCORD is a lightweight Discord client modification that adds a built-in
+          store for plugins and themes. Install them by dragging zip files, or browse
+          the online store. Compatible with Vencord themes and plugins.
+          EOF
+
+          cp -r dist/* dist/suncord_1.0.0_amd64/usr/lib/suncord/
+          cp scripts/suncord.desktop dist/suncord_1.0.0_amd64/usr/share/applications/
+          cp scripts/suncord.sh dist/suncord_1.0.0_amd64/usr/lib/suncord/
+
+          chmod 755 dist/suncord_1.0.0_amd64/DEBIAN/*
+          dpkg-deb --build dist/suncord_1.0.0_amd64 dist/suncord_1.0.0_amd64.deb
+
+      - name: Package .rpm
+        run: |
+          sudo apt-get install -y rpm
+          mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+
+          cat > rpmbuild/SPECS/suncord.spec << EOF
+          Name:           suncord
+          Version:        1.0.0
+          Release:        1%{?dist}
+          Summary:        Discord client mod with drag-and-drop plugin store
+
+          License:        MIT
+          URL:            https://github.com/suncord/suncord
+
+          Requires:       discord
+
+          %description
+          SUNCORD is a lightweight Discord client modification that adds a built-in
+          store for plugins and themes.
+
+          %install
+          mkdir -p %{buildroot}/usr/lib/suncord
+          cp -r %{_sourcedir}/* %{buildroot}/usr/lib/suncord/
+
+          %files
+          /usr/lib/suncord/*
+          EOF
+
+          cp -r dist/* rpmbuild/SOURCES/
+          rpmbuild -ba rpmbuild/SPECS/suncord.spec --define "_topdir $(pwd)/rpmbuild"
+
+      - name: Package AppImage
+        run: |
+          # Create AppDir structure
+          mkdir -p dist/suncord.AppDir/usr/{bin,lib/suncord,share/applications,share/icons}
+          cp -r dist/* dist/suncord.AppDir/usr/lib/suncord/
+          cp scripts/suncord.desktop dist/suncord.AppDir/usr/share/applications/
+
+          cat > dist/suncord.AppDir/usr/bin/suncord << 'EOF'
+          #!/bin/bash
+          exec /usr/lib/suncord/suncord.sh "$@"
+          EOF
+          chmod +x dist/suncord.AppDir/usr/bin/suncord
+
+          # Create AppRun
+          cat > dist/suncord.AppDir/AppRun << 'EOF'
+          #!/bin/bash
+          SELF=$(readlink -f "$0")
+          APPDIR=$(dirname "$SELF")
+          export PATH="$APPDIR/usr/bin:$PATH"
+          exec "$APPDIR/usr/bin/suncord" "$@"
+          EOF
+          chmod +x dist/suncord.AppDir/AppRun
+
+          # Download appimagetool
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O /tmp/appimagetool
+          chmod +x /tmp/appimagetool
+
+          ARCH=x86_64 /tmp/appimagetool dist/suncord.AppDir dist/suncord-x86_64.AppImage
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-builds
+          path: |
+            dist/suncord_1.0.0_amd64.deb
+            dist/suncord-x86_64.AppImage
+            dist/rpmbuild/RPMS/x86_64/*.rpm
+          retention-days: 30
+
+  build-windows:
+    name: "Windows Build"
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build SUNCORD
+        run: npm run build
+
+      - name: Package .exe installer
+        run: |
+          # Create NSIS installer script
+          cat > build/installer.nsi << 'EOF'
+          !include "MUI2.nsh"
+
+          Name "SUNCORD"
+          OutFile "suncord-setup.exe"
+          InstallDir "$LOCALAPPDATA\SUNCORD"
+          RequestExecutionLevel user
+
+          !define MUI_ABORTWARNING
+          !define MUI_ICON "build\icon.ico"
+
+          !insertmacro MUI_PAGE_WELCOME
+          !insertmacro MUI_PAGE_LICENSE "LICENSE"
+          !insertmacro MUI_PAGE_DIRECTORY
+          !insertmacro MUI_PAGE_INSTFILES
+          !insertmacro MUI_PAGE_FINISH
+
+          !insertmacro MUI_UNPAGE_CONFIRM
+          !insertmacro MUI_UNPAGE_INSTFILES
+
+          !insertmacro MUI_LANGUAGE "English"
+
+          Section "SUNCORD"
+            SetOutPath "$INSTDIR"
+            File /r "dist\*.*"
+
+            CreateDirectory "$SMPROGRAMMS\SUNCORD"
+            CreateShortCut "$SMPROGRAMMS\SUNCORD\SUNCORD.lnk" "$INSTDIR\suncord.exe"
+            CreateShortCut "$DESKTOP\SUNCORD.lnk" "$INSTDIR\suncord.exe"
+
+            # Registry for uninstaller
+            WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\SUNCORD" "DisplayName" "SUNCORD"
+            WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\SUNCORD" "UninstallString" '"$INSTDIR\uninstall.exe"'
+            WriteUninstaller "$INSTDIR\uninstall.exe"
+          SectionEnd
+
+          Section "Uninstall"
+            RMDir /r "$INSTDIR"
+            Delete "$SMPROGRAMMS\SUNCORD\SUNCORD.lnk"
+            Delete "$DESKTOP\SUNCORD.lnk"
+            RMDir "$SMPROGRAMMS\SUNCORD"
+            DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\SUNCORD"
+          SectionEnd
+          EOF
+
+          # If NSIS is available, build the installer
+          if command -v makensis &> /dev/null; then
+            makensis build/installer.nsi
+          else
+            echo "NSIS not available, creating portable zip instead"
+            7z a suncord-windows.zip dist/*
+          fi
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-builds
+          path: |
+            suncord-setup.exe
+            suncord-windows.zip
+          retention-days: 30
+
+  release:
+    name: "Create Release"
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            linux-builds/*
+            windows-builds/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false
