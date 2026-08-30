@@ -22,6 +22,7 @@ const injectorCtx = await build({
   format: "cjs",
   platform: "node",
   target: "node18",
+  external: ["electron"], // electron is provided at runtime by Discord
 });
 
 // 2. Preload script — runs in preload context
