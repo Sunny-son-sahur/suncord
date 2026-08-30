@@ -7,29 +7,24 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    name: Build
+  build-linux:
+    name: "Linux Build"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "npm"
-
       - run: npm ci
-
       - run: npm run build
 
-      # Package Linux .deb
       - name: Build .deb
         run: |
           mkdir -p release/suncord_1.0.0_amd64/DEBIAN
           mkdir -p release/suncord_1.0.0_amd64/usr/lib/suncord
           mkdir -p release/suncord_1.0.0_amd64/usr/share/applications
-
-          cat > release/suncord_1.0.0_amd64/DEBIAN/control << 'EOF'
+          cat > release/suncord_1.0.0_amd64/DEBIAN/control << 'DEBEOF'
           Package: suncord
           Version: 1.0.0
           Section: net
@@ -38,62 +33,58 @@ jobs:
           Depends: discord
           Maintainer: SUNCORD Team
           Description: Discord client mod with drag-and-drop plugin store
-          EOF
-
+          DEBEOF
           cp -r dist/* release/suncord_1.0.0_amd64/usr/lib/suncord/
           cp scripts/suncord.sh release/suncord_1.0.0_amd64/usr/lib/suncord/
           chmod 755 release/suncord_1.0.0_amd64/usr/lib/suncord/suncord.sh
-
-          cat > release/suncord_1.0.0_amd64/usr/share/applications/suncord.desktop << 'EOF'
-          [Desktop Entry]
-          Name=SUNCORD
-          Exec=/usr/lib/suncord/suncord.sh launch
-          Icon=suncord
-          Type=Application
-          Categories=Network;
-          EOF
-
           dpkg-deb --build release/suncord_1.0.0_amd64 release/suncord_1.0.0_amd64.deb
 
-      # Package portable zip (works on any OS)
       - name: Build portable zip
-        run: |
-          cd dist && zip -r ../release/suncord-portable.zip . && cd ..
+        run: cd dist && zip -r ../release/suncord-portable.zip .
 
-      # Package Windows NSIS installer
-      - name: Build Windows installer
-        run: |
-          sudo apt-get update && sudo apt-get install -y nsis
-          makensis build/installer.nsi
-
-      # Upload artifacts for this run
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: suncord-builds
-          path: |
-            release/*.deb
-            release/*.zip
-            suncord-setup.exe
+          name: linux-builds
+          path: release/*
+          retention-days: 30
+
+  build-windows:
+    name: "Windows Build"
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run build
+
+      - name: Build portable zip
+        run: Compress-Archive -Path dist/* -DestinationPath release/suncord-windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-builds
+          path: release/*
           retention-days: 30
 
   release:
-    name: Create Release
-    needs: build
+    name: "Create Release"
+    needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/download-artifact@v4
         with:
-          name: suncord-builds
           path: release
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: release/*
+          files: |
+            release/linux-builds/*
+            release/windows-builds/*
           generate_release_notes: true
