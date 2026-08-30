@@ -85,10 +85,13 @@ jobs:
         working-directory: installer
       - run: npm run build:win
         working-directory: installer
+      - name: Move installer to root
+        run: Move-Item -Path "installer\release\*.exe" -Destination "." -ErrorAction SilentlyContinue
       - uses: actions/upload-artifact@v4
         with:
           name: installer-windows
-          path: installer/release/*.exe
+          path: "*.exe"
+          if-no-files-found: warn
           retention-days: 30
 
   build-installer-linux:
@@ -106,10 +109,13 @@ jobs:
         working-directory: installer
       - run: npm run build:linux
         working-directory: installer
+      - name: Move installer to root
+        run: mv installer/release/*.AppImage . 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         with:
           name: installer-linux
-          path: installer/release/*.AppImage
+          path: "*.AppImage"
+          if-no-files-found: warn
           retention-days: 30
 
   build-installer-mac:
@@ -126,10 +132,13 @@ jobs:
         working-directory: installer
       - run: npm run build:mac
         working-directory: installer
+      - name: Move installer to root
+        run: mv installer/release/*.dmg . 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         with:
           name: installer-mac
-          path: installer/release/*.dmg
+          path: "*.dmg"
+          if-no-files-found: warn
           retention-days: 30
 
   deploy-site:
