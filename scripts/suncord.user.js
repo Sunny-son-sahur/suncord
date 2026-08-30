@@ -7,7 +7,7 @@
 // @match        https://discord.com/*
 // @match        https://*.discord.com/*
 // @grant        none
-// @run-at       document-start
+// @run-at       document-idle
 // ==/UserScript==
 
 (function () {
@@ -16,6 +16,8 @@
   const SUNCORD_VERSION = "1.0.0";
   const LOG_PREFIX = "[Suncord]";
 
+  console.log(LOG_PREFIX, "v" + SUNCORD_VERSION + " — script loaded");
+
   // ── Config Store ──
 
   const CONFIG_KEY = "suncord_config";
@@ -23,7 +25,7 @@
   function getConfig() {
     try {
       return JSON.parse(localStorage.getItem(CONFIG_KEY) || "{}");
-    } catch {
+    } catch (e) {
       return {};
     }
   }
@@ -44,63 +46,6 @@
     setConfig("plugins", plugins);
   }
 
-  // ── Theme Injection ──
-
-  let themeStyleEl = null;
-
-  function injectTheme(css) {
-    if (!themeStyleEl) {
-      themeStyleEl = document.createElement("style");
-      themeStyleEl.id = "suncord-theme";
-      document.head.appendChild(themeStyleEl);
-    }
-    themeStyleEl.textContent = css;
-  }
-
-  function removeTheme() {
-    if (themeStyleEl) {
-      themeStyleEl.remove();
-      themeStyleEl = null;
-    }
-  }
-
-  // ── Webpack Module Finder ──
-
-  let webpackChunk = null;
-  let moduleCache = {};
-
-  function findWebpackModules() {
-    // Discord stores modules in window.webpackChunkdiscord_app
-    if (window.webpackChunkdiscord_app) {
-      webpackChunk = window.webpackChunkdiscord_app;
-      return true;
-    }
-    return false;
-  }
-
-  function getModulesByFilter(filter) {
-    const results = [];
-    try {
-      const modules = Object.values(require.c || {});
-      for (const m of modules) {
-        if (m && m.exports && filter(m.exports)) {
-          results.push(m.exports);
-        }
-      }
-    } catch {}
-    return results;
-  }
-
-  function getByProps(...props) {
-    return getModulesByFilter((m) => props.every((p) => m[p] !== undefined));
-  }
-
-  function getByDisplayName(name) {
-    return getModulesByFilter(
-      (m) => m.displayName === name || m.default?.displayName === name
-    );
-  }
-
   // ── Plugin System ──
 
   const loadedPlugins = new Map();
@@ -114,32 +59,33 @@
       this.author = info.author;
     }
 
-    log(...args) {
-      console.log(LOG_PREFIX, `[${this.name}]`, ...args);
+    log() {
+      var args = [LOG_PREFIX, "[" + this.name + "]"];
+      for (var i = 0; i < arguments.length; i++) args.push(arguments[i]);
+      console.log.apply(console, args);
     }
 
-    // Override these
     start() {}
     stop() {}
   }
 
   function registerPlugin(plugin) {
     loadedPlugins.set(plugin.id, plugin);
-    const enabled = getPlugins()[plugin.id] !== false; // default on
+    var enabled = getPlugins()[plugin.id] !== false;
     if (enabled) {
       try {
         plugin.start();
         plugin.log("Loaded");
       } catch (e) {
-        console.error(LOG_PREFIX, `Failed to start ${plugin.name}:`, e);
+        console.error(LOG_PREFIX, "Failed to start " + plugin.name + ":", e);
       }
     }
   }
 
   function togglePlugin(id) {
-    const plugin = loadedPlugins.get(id);
+    var plugin = loadedPlugins.get(id);
     if (!plugin) return;
-    const enabled = getPlugins()[id] !== false;
+    var enabled = getPlugins()[id] !== false;
     if (enabled) {
       plugin.stop();
       setPlugin(id, false);
@@ -151,171 +97,201 @@
     }
   }
 
-  // ── Settings Panel ──
+  // ── Toast Notification (visual proof it works) ──
 
-  function createSettingsButton() {
-    // We inject into Discord's settings sidebar once it loads
-    const observer = new MutationObserver(() => {
-      const settingsSidebar = document.querySelector(
-        '[class*="sidebar"] [class*="panels"]'
-      );
-      if (
-        settingsSidebar &&
-        !settingsSidebar.querySelector("#suncord-settings-btn")
-      ) {
-        const btn = document.createElement("div");
-        btn.id = "suncord-settings-btn";
-        btn.style.cssText =
-          "padding:10px 10px 10px 20px;cursor:pointer;color:#b9bbbe;font-size:15px;opacity:0.8;";
-        btn.textContent = "☀️ Suncord";
-        btn.addEventListener("mouseenter", () => (btn.style.opacity = "1"));
-        btn.addEventListener("mouseleave", () => (btn.style.opacity = "0.8"));
-        btn.addEventListener("click", () => showSuncordPanel());
-        settingsSidebar.appendChild(btn);
-      }
+  function showToast(msg, duration) {
+    duration = duration || 3000;
+    var toast = document.createElement("div");
+    toast.textContent = msg;
+    toast.style.cssText =
+      "position:fixed;bottom:24px;right:24px;z-index:999999;" +
+      "background:#2f3136;color:#dcddde;padding:12px 20px;border-radius:8px;" +
+      "font-family:sans-serif;font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,0.4);" +
+      "border-left:4px solid #e94560;transition:opacity 0.3s;";
+    document.body.appendChild(toast);
+    setTimeout(function () {
+      toast.style.opacity = "0";
+      setTimeout(function () {
+        toast.remove();
+      }, 300);
+    }, duration);
+  }
+
+  // ── Settings Button (in Discord sidebar) ──
+
+  function injectSettingsButton() {
+    var observer = new MutationObserver(function () {
+      // Look for Discord's settings sidebar — the left panel with User Settings, Nitro, etc.
+      var panels = document.querySelector('[class*="sidePanel"]') ||
+                   document.querySelector('[aria-label="Servers"]') ||
+                   document.querySelector('[class*="guilds"]');
+
+      // Also try to find the settings area specifically
+      var settingsNav = document.querySelector('[class*="settings"] [class*="list"]') ||
+                        document.querySelector('[class*="sidebar"] [class*="list"]');
+
+      var target = settingsNav || panels;
+      if (!target) return;
+
+      // Don't inject twice
+      if (document.getElementById("suncord-nav-btn")) return;
+
+      var btn = document.createElement("div");
+      btn.id = "suncord-nav-btn";
+      btn.setAttribute("role", "button");
+      btn.setAttribute("tabindex", "0");
+      btn.style.cssText =
+        "padding:6px 10px;margin:2px 8px;cursor:pointer;color:#b9bbbe;font-size:13px;" +
+        "border-radius:4px;display:flex;align-items:center;gap:8px;transition:background 0.15s;";
+      btn.innerHTML = "☀️ <span>Suncord</span>";
+
+      btn.addEventListener("mouseenter", function () {
+        btn.style.background = "rgba(79,84,92,0.4)";
+      });
+      btn.addEventListener("mouseleave", function () {
+        btn.style.background = "transparent";
+      });
+      btn.addEventListener("click", function () {
+        showSuncordPanel();
+      });
+
+      target.appendChild(btn);
+      console.log(LOG_PREFIX, "Settings button injected");
     });
+
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
+  // ── Suncord Settings Panel ──
+
   function showSuncordPanel() {
-    // Find the settings content area and show our panel
-    const settingsContent = document.querySelector(
-      '[class*="content"] [class*="sidebar"]'
-    );
-    if (!settingsContent) return;
+    // Try multiple selectors to find Discord's content area
+    var contentArea =
+      document.querySelector('[class*="content-"]') ||
+      document.querySelector('[class*="settings"] [class*="content"]') ||
+      document.querySelector('[class*="tier"]') ||
+      document.querySelector('[class*="panels"]');
 
-    const panel = document.createElement("div");
+    if (!contentArea) {
+      console.warn(LOG_PREFIX, "Could not find settings content area");
+      return;
+    }
+
+    var panel = document.createElement("div");
     panel.style.cssText =
-      "padding:20px;color:#dcddde;font-family:inherit;";
+      "padding:20px;color:#dcddde;font-family:inherit;height:100%;overflow-y:auto;";
 
-    const plugins = Array.from(loadedPlugins.values());
+    var plugins = Array.from(loadedPlugins.values());
 
-    panel.innerHTML = `
-      <h2 style="margin-bottom:8px">☀️ Suncord v${SUNCORD_VERSION}</h2>
-      <p style="color:#72767d;margin-bottom:24px;font-size:14px">Browser userscript — ${plugins.length} plugin(s) loaded</p>
-      <h3 style="margin-bottom:12px;font-size:16px;color:#b9bbbe">Plugins</h3>
-      <div id="suncord-plugin-list">
-        ${
-          plugins.length === 0
-            ? '<p style="color:#72767d;font-size:14px">No plugins loaded. Edit the userscript to add them.</p>'
-            : plugins
-                .map((p) => {
-                  const enabled = getPlugins()[p.id] !== false;
-                  return `
-                  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#2f3136;border-radius:8px;margin-bottom:8px;">
-                    <div>
-                      <div style="font-weight:600;font-size:14px;">${p.name}</div>
-                      <div style="color:#72767d;font-size:12px;">${p.description || ""}</div>
-                    </div>
-                    <label style="position:relative;display:inline-block;width:40px;height:22px;">
-                      <input type="checkbox" data-plugin-id="${p.id}" ${enabled ? "checked" : ""} style="opacity:0;width:0;height:0;">
-                      <span style="position:absolute;cursor:pointer;inset:0;background:#4f545c;border-radius:11px;transition:0.3s;"></span>
-                    </label>
-                  </div>`;
-                })
-                .join("")
-        }
-      </div>
-    `;
-
-    // Toggle switch styling
-    const style = document.createElement("style");
-    style.textContent = `
-      #suncord-settings-panel input:checked + span { background: #3ba55d; }
-      #suncord-settings-panel input:checked + span::before { transform: translateX(18px); }
-      #suncord-settings-panel input + span::before {
-        content: '';
-        position: absolute;
-        width: 16px;
-        height: 16px;
-        left: 3px;
-        bottom: 3px;
-        background: white;
-        border-radius: 50%;
-        transition: 0.3s;
+    var pluginListHTML = "";
+    if (plugins.length === 0) {
+      pluginListHTML = '<p style="color:#72767d;font-size:14px">No plugins loaded yet.</p>';
+    } else {
+      for (var i = 0; i < plugins.length; i++) {
+        var p = plugins[i];
+        var enabled = getPlugins()[p.id] !== false;
+        pluginListHTML +=
+          '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#2f3136;border-radius:8px;margin-bottom:8px;">' +
+          '<div><div style="font-weight:600;font-size:14px;">' + p.name + "</div>" +
+          '<div style="color:#72767d;font-size:12px;">' + (p.description || "") + "</div></div>" +
+          '<label style="position:relative;display:inline-block;width:40px;height:22px;">' +
+          '<input type="checkbox" data-plugin-id="' + p.id + '" ' + (enabled ? "checked" : "") +
+          ' style="opacity:0;width:0;height:0;position:absolute;">' +
+          '<span style="position:absolute;cursor:pointer;inset:0;background:' +
+          (enabled ? "#3ba55d" : "#4f545c") +
+          ';border-radius:11px;transition:0.3s;"></span></label></div>';
       }
-    `;
-    panel.prepend(style);
+    }
+
+    panel.innerHTML =
+      '<h2 style="margin:0 0 4px">☀️ Suncord v' + SUNCORD_VERSION + "</h2>" +
+      '<p style="color:#72767d;margin:0 0 24px;font-size:13px">Browser userscript — ' +
+      plugins.length + " plugin(s) loaded</p>" +
+      '<h3 style="margin:0 0 12px;font-size:15px;color:#b9bbbe">Plugins</h3>' +
+      '<div id="suncord-plugin-list">' + pluginListHTML + "</div>" +
+      '<div style="margin-top:24px;padding-top:16px;border-top:1px solid #4f545c;">' +
+      '<p style="color:#72767d;font-size:12px;margin:0">Suncord is open source. ' +
+      '<a href="https://github.com/Sunny-son-sahur/suncord" target="_blank" ' +
+      'style="color:#00aff4;">GitHub</a></p></div>';
+
     panel.id = "suncord-settings-panel";
 
-    // Handle toggle
-    panel.addEventListener("change", (e) => {
+    // Toggle handler
+    panel.addEventListener("change", function (e) {
       if (e.target.dataset.pluginId) {
         togglePlugin(e.target.dataset.pluginId);
+        // Update toggle color
+        var span = e.target.nextElementSibling;
+        if (span) {
+          span.style.background = e.target.checked ? "#3ba55d" : "#4f545c";
+        }
       }
     });
 
-    // Replace settings content
-    const contentArea = document.querySelector('[class*="content-"]');
-    if (contentArea) {
-      contentArea.innerHTML = "";
-      contentArea.appendChild(panel);
-    }
+    contentArea.innerHTML = "";
+    contentArea.appendChild(panel);
   }
 
   // ── Built-in Plugins ──
 
-  // Example: Better Status
-  class BetterStatusPlugin extends PluginBase {
-    constructor() {
-      super({
-        id: "better-status",
-        name: "Better Status",
-        description: "Adds custom status options",
-        version: "1.0.0",
-        author: "Suncord",
-      });
-    }
-
-    start() {
-      this.log("Better Status active");
-    }
-
-    stop() {
-      this.log("Better Status stopped");
-    }
+  function BetterStatusPlugin() {
+    PluginBase.call(this, {
+      id: "better-status",
+      name: "Better Status",
+      description: "Adds custom status options",
+      version: "1.0.0",
+      author: "Suncord",
+    });
   }
+  BetterStatusPlugin.prototype = Object.create(PluginBase.prototype);
+  BetterStatusPlugin.prototype.constructor = BetterStatusPlugin;
+  BetterStatusPlugin.prototype.start = function () {
+    this.log("active");
+  };
+  BetterStatusPlugin.prototype.stop = function () {
+    this.log("stopped");
+  };
 
-  // Example: Message Utilities
-  class MessageUtilitiesPlugin extends PluginBase {
-    constructor() {
-      super({
-        id: "message-utils",
-        name: "Message Utilities",
-        description: "Extra message actions",
-        version: "1.0.0",
-        author: "Suncord",
-      });
-    }
-
-    start() {
-      this.log("Message Utilities active");
-    }
-
-    stop() {
-      this.log("Message Utilities stopped");
-    }
+  function MessageUtilsPlugin() {
+    PluginBase.call(this, {
+      id: "message-utils",
+      name: "Message Utilities",
+      description: "Extra message actions",
+      version: "1.0.0",
+      author: "Suncord",
+    });
   }
+  MessageUtilsPlugin.prototype = Object.create(PluginBase.prototype);
+  MessageUtilsPlugin.prototype.constructor = MessageUtilsPlugin;
+  MessageUtilsPlugin.prototype.start = function () {
+    this.log("active");
+  };
+  MessageUtilsPlugin.prototype.stop = function () {
+    this.log("stopped");
+  };
 
   // ── Init ──
 
   function init() {
-    console.log(LOG_PREFIX, `v${SUNCORD_VERSION} initializing...`);
+    console.log(LOG_PREFIX, "v" + SUNCORD_VERSION + " — initializing");
 
-    // Register built-in plugins
+    // Register plugins
     registerPlugin(new BetterStatusPlugin());
-    registerPlugin(new MessageUtilitiesPlugin());
+    registerPlugin(new MessageUtilsPlugin());
 
-    // Wait for Discord to load and inject settings button
-    createSettingsButton();
+    // Inject settings button
+    injectSettingsButton();
 
-    console.log(LOG_PREFIX, "Ready.");
+    // Show toast as visual proof
+    showToast("☀️ Suncord v" + SUNCORD_VERSION + " loaded!", 4000);
+
+    console.log(LOG_PREFIX, "Ready. " + loadedPlugins.size + " plugin(s) loaded.");
   }
 
-  // Start when DOM is ready
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
-  } else {
+  // Wait for page to be fully ready
+  if (document.readyState === "complete") {
     init();
+  } else {
+    window.addEventListener("load", init);
   }
 })();
