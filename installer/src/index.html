@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>Suncord Installer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Title Bar (custom) -->
+  <div class="titlebar" id="titlebar">
+    <span class="titlebar-title">☀️ Suncord Installer</span>
+    <div class="titlebar-controls">
+      <button class="tb-btn tb-minimize" id="btnMinimize">─</button>
+      <button class="tb-btn tb-close" id="btnClose">✕</button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="app">
+    <!-- Step 1: Detect -->
+    <div class="step" id="stepDetect">
+      <div class="step-icon">🔍</div>
+      <h2>Looking for Discord...</h2>
+      <p class="dim">Checking your system for Discord installations</p>
+      <div class="spinner" id="detectSpinner"></div>
+    </div>
+
+    <!-- Step 2: Select -->
+    <div class="step hidden" id="stepSelect">
+      <div class="step-icon">📁</div>
+      <h2>Discord Found</h2>
+      <div class="discord-list" id="discordList">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <!-- Step 3: Patching -->
+    <div class="step hidden" id="stepPatching">
+      <div class="step-icon">⚙️</div>
+      <h2 id="patchingTitle">Installing Suncord...</h2>
+      <p class="dim" id="patchingStatus">Patching Discord</p>
+      <div class="spinner"></div>
+    </div>
+
+    <!-- Step 4: Done -->
+    <div class="step hidden" id="stepDone">
+      <div class="step-icon">✅</div>
+      <h2 id="doneTitle">Suncord Installed!</h2>
+      <p class="dim" id="doneMessage">Discord has been patched with Suncord.</p>
+      <div class="action-buttons">
+        <button class="btn btn-primary" id="btnLaunch">Launch Discord</button>
+        <button class="btn btn-secondary" id="btnDoneBack">Back</button>
+      </div>
+    </div>
+
+    <!-- Step: Already Patched -->
+    <div class="step hidden" id="stepPatched">
+      <div class="step-icon">ℹ️</div>
+      <h2>Already Installed</h2>
+      <p class="dim">Suncord is already installed on this Discord.</p>
+      <div class="action-buttons">
+        <button class="btn btn-danger" id="btnUninstall">Uninstall Suncord</button>
+        <button class="btn btn-primary" id="btnLaunchFromPatched">Launch Discord</button>
+        <button class="btn btn-secondary" id="btnPatchedBack">Back</button>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div class="step hidden" id="stepError">
+      <div class="step-icon">❌</div>
+      <h2>Something went wrong</h2>
+      <p class="dim" id="errorMessage"></p>
+      <button class="btn btn-secondary" id="btnErrorBack">Try Again</button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>v1.0.0</span>
+    <a href="#" id="linkGitHub">GitHub</a>
+    <a href="#" id="linkDiscord">Discord Server</a>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
