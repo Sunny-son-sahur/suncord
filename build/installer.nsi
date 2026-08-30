@@ -27,11 +27,7 @@ Section "SUNCORD Core" SecCore
   SetOutPath "$INSTDIR"
 
   ; Install dist files
-  File /r "dist\*.*"
-
-  ; Install scripts
-  File "scripts\inject.mjs"
-  File "scripts\suncord.sh"
+  File /r "dist/*.*"
 
   ; Save install path
   WriteRegStr HKCU "Software\SUNCORD" "InstallDir" "$INSTDIR"
