@@ -1,300 +1,113 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SUNCORD — Download</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#0d0d0f;--card:#1a1a1f;--card2:#222228;--border:#2a2a30;--text:#e4e4e7;--dim:#8b8b94;--accent:#f59e0b;--accent2:#f97316;--glow:rgba(245,158,11,.15);--green:#22c55e}
-body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-
-.glow{position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:800px;height:600px;background:radial-gradient(ellipse,var(--glow),transparent 70%);pointer-events:none;z-index:0}
-
-nav{position:fixed;top:0;width:100%;padding:16px 40px;display:flex;align-items:center;justify-content:space-between;background:rgba(13,13,15,.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:100}
-.nav-logo{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:800;color:var(--accent);text-decoration:none}
-.nav-logo span{font-size:24px}
-.nav-links{display:flex;gap:24px}
-.nav-links a{color:var(--dim);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s}
-.nav-links a:hover{color:var(--text)}
-.nav-github{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);text-decoration:none;font-size:14px;font-weight:500;transition:all .2s}
-.nav-github:hover{background:var(--card2);border-color:var(--accent)}
-
-.hero{position:relative;z-index:1;text-align:center;padding:160px 40px 60px}
-.badge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;background:var(--glow);border:1px solid rgba(245,158,11,.3);border-radius:20px;font-size:13px;font-weight:500;color:var(--accent);margin-bottom:24px}
-.hero h1{font-size:56px;font-weight:800;line-height:1.1;margin-bottom:16px;background:linear-gradient(135deg,#fff,#f59e0b 50%,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hero p{font-size:18px;color:var(--dim);max-width:520px;margin:0 auto 40px;line-height:1.6}
-.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;border-radius:10px;font-size:15px;font-weight:600;text-decoration:none;transition:all .2s;cursor:pointer;border:none}
-.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#000;box-shadow:0 4px 20px rgba(245,158,11,.3)}
-.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(245,158,11,.4)}
-.btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--border)}
-.btn-secondary:hover{background:var(--card2);border-color:var(--accent)}
-
-.features{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:900px;margin:0 auto 80px;padding:0 40px}
-.feature{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;transition:all .2s}
-.feature:hover{border-color:var(--accent);transform:translateY(-2px)}
-.feature .icon{font-size:28px;margin-bottom:12px}
-.feature h3{font-size:15px;font-weight:600;margin-bottom:6px}
-.feature p{font-size:13px;color:var(--dim);line-height:1.5}
-
-.download{position:relative;z-index:1;max-width:700px;margin:0 auto;padding:0 40px 100px}
-.dl-card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden}
-.tabs{display:flex;border-bottom:1px solid var(--border)}
-.tab{flex:1;padding:16px;background:none;border:none;color:var(--dim);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;position:relative}
-.tab:hover{color:var(--text);background:rgba(255,255,255,.02)}
-.tab.active{color:var(--accent)}
-.tab.active::after{content:"";position:absolute;bottom:-1px;left:0;right:0;height:2px;background:var(--accent)}
-.tab svg{width:18px;height:18px}
-
-.pane{display:none;padding:32px}
-.pane.active{display:block}
-.pane h2{font-size:20px;font-weight:700;margin-bottom:8px}
-.pane .sub{font-size:14px;color:var(--dim);margin-bottom:24px}
-
-.dl-btn{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;text-decoration:none;color:#000;font-weight:600;margin-bottom:20px;transition:all .2s}
-.dl-btn:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(245,158,11,.3)}
-.dl-btn .info{display:flex;flex-direction:column}
-.dl-btn .name{font-size:15px;font-weight:700}
-.dl-btn .size{font-size:12px;opacity:.7}
-
-.dl-btn-secondary{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--card2);border:1px solid var(--border);border-radius:10px;text-decoration:none;color:var(--text);font-weight:500;margin-bottom:20px;transition:all .2s;font-size:14px}
-.dl-btn-secondary:hover{border-color:var(--accent);background:rgba(255,255,255,.05)}
-
-.steps{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:20px}
-.steps h4{font-size:13px;font-weight:600;margin-bottom:12px;color:var(--accent)}
-.steps ol{padding-left:20px}
-.steps li{font-size:13px;color:var(--dim);line-height:2}
-.steps code{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:12px;color:var(--green)}
-.steps a{color:var(--accent);text-decoration:none}
-.steps a:hover{text-decoration:underline}
-.warning{background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:16px;margin-top:16px;font-size:13px;color:var(--dim);line-height:1.6}
-.warning strong{color:var(--accent)}
-
-.compat{position:relative;z-index:1;max-width:700px;margin:0 auto;padding:0 40px 100px}
-.compat-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px}
-.compat-card h2{font-size:18px;font-weight:700;margin-bottom:16px}
-.compat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.compat-item{display:flex;align-items:center;gap:10px;padding:12px;background:rgba(255,255,255,.02);border-radius:8px}
-.compat-item .ci{font-size:20px}
-.compat-item .ct{font-size:13px}
-.compat-item .ct strong{display:block;color:var(--text)}
-.compat-item .ct span{color:var(--dim)}
-
-footer{position:relative;z-index:1;text-align:center;padding:40px;border-top:1px solid var(--border);color:var(--dim);font-size:13px}
-footer a{color:var(--accent);text-decoration:none}
-
-@media(max-width:768px){
-  .hero h1{font-size:36px}
-  .features,.compat-grid{grid-template-columns:1fr}
-  nav{padding:12px 20px}
-  .nav-links{display:none}
-  .hero,.download,.compat{padding-left:20px;padding-right:20px}
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Suncord — Discord, But Yours</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☀️</text></svg>">
 </head>
 <body>
-<div class="glow"></div>
+  <!-- Hero -->
+  <header class="hero">
+    <div class="hero-glow"></div>
+    <div class="container">
+      <h1 class="hero-title">Download <span class="accent">Suncord</span></h1>
+      <p class="hero-sub">Discord, but yours. Plugins, themes, full control.</p>
 
-<nav>
-  <a href="/" class="nav-logo"><span>&#9728;</span> SUNCORD</a>
-  <div class="nav-links">
-    <a href="#download">Download</a>
-    <a href="#compat">Compatibility</a>
-    <a href="https://github.com/Sunny-son-sahur/suncord#readme" target="_blank">Docs</a>
-  </div>
-  <a href="https://github.com/Sunny-son-sahur/suncord" class="nav-github" target="_blank">
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-    GitHub
-  </a>
-</nav>
+      <!-- Platform Tabs -->
+      <div class="platform-tabs" id="platformTabs">
+        <button class="tab active" data-platform="windows">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+          Windows
+        </button>
+        <button class="tab" data-platform="linux">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a.424.424 0 00-.11.135c-.26.268-.45.6-.663.839-.199.199-.485.267-.797.4-.313.136-.658.269-.864.68-.09.189-.136.394-.132.602 0 .199.027.4.055.536.058.399.116.728.04.97-.249.68-.28 1.145-.106 1.484.174.334.535.47.94.601.81.2 1.91.135 2.774.6.926.466 1.866.67 2.616.47.526-.116.97-.464 1.208-.946.587-.003 1.23-.269 2.26-.334.699-.058 1.574.267 2.577.2.025.134.063.198.114.333l.003.003c.391.778 1.113 1.368 1.884 1.43.199.022.402.018.602-.014a.424.424 0 00.091-.02c.468-.119.825-.5.913-.971.086-.467-.012-.997-.268-1.531-.063-.134-.134-.267-.214-.399-.047-.078-.1-.156-.156-.233-.136-.199-.288-.399-.467-.588-.054-.063-.117-.12-.174-.178l-.018-.018c-.078-.078-.158-.158-.235-.23l-.06-.056c-.037-.034-.073-.068-.111-.1-.124-.103-.255-.2-.399-.287-.134-.087-.28-.16-.432-.222-.155-.063-.321-.112-.493-.144-.174-.034-.356-.05-.544-.042-.183.01-.37.044-.56.1-.193.058-.39.144-.59.26-.199.116-.4.268-.6.454-.199.183-.39.4-.567.648-.173.25-.332.532-.47.847-.07.157-.132.32-.186.49a5.052 5.052 0 00-.14.527c-.023.199-.033.405-.026.617.01.2.037.4.082.598.042.197.1.39.178.576.077.183.168.356.273.518.104.163.222.31.354.443.131.132.277.247.435.341.159.095.33.165.51.208.178.043.366.058.56.043.195-.016.393-.056.59-.114.199-.058.397-.133.59-.223.194-.09.38-.2.554-.326a2.64 2.64 0 00.349-.326c.104-.133.199-.28.278-.441.08-.16.14-.333.175-.513.036-.18.045-.37.02-.56a2.3 2.3 0 00-.105-.527c-.063-.175-.147-.34-.247-.494-.1-.155-.215-.298-.344-.424-.13-.126-.274-.233-.428-.32a2.2 2.2 0 00-.488-.208c-.174-.052-.36-.077-.55-.077z"/></svg>
+          Linux
+        </button>
+        <button class="tab" data-platform="mac">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+          Mac
+        </button>
+        <button class="tab" data-platform="browser">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+          Browser
+        </button>
+      </div>
 
-<section class="hero">
-  <div class="badge">v1.0.0 — Drag. Drop. Done.</div>
-  <h1>SUNCORD</h1>
-  <p>A lightweight Discord client modification with a built-in store for plugins and themes. Install by dragging a zip file, or browse the online store.</p>
-  <div class="hero-cta">
-    <a href="#download" class="btn btn-primary">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-      Download
-    </a>
-    <a href="https://github.com/Sunny-son-sahur/suncord" class="btn btn-secondary" target="_blank">View Source</a>
-  </div>
-</section>
-
-<section class="features">
-  <div class="feature">
-    <div class="icon">&#127978;</div>
-    <h3>Built-in Store</h3>
-    <p>Plugin and theme store right inside Discord. Browse, search, one-click install.</p>
-  </div>
-  <div class="feature">
-    <div class="icon">&#128230;</div>
-    <h3>Drag &amp; Drop</h3>
-    <p>Drop a .zip plugin or .css theme onto the store to install it instantly.</p>
-  </div>
-  <div class="feature">
-    <div class="icon">&#128279;</div>
-    <h3>Vencord Compatible</h3>
-    <p>Works with Vencord, BetterDiscord, and Powercord themes and plugins.</p>
-  </div>
-</section>
-
-<section class="download" id="download">
-  <div class="dl-card">
-    <div class="tabs">
-      <button class="tab active" data-tab="windows">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
-        Windows
-      </button>
-      <button class="tab" data-tab="linux">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a.424.424 0 00-.11.135c-.26.268-.45.6-.663.839-.199.199-.485.267-.797.4-.313.136-.658.269-.864.68-.09.189-.136.394-.132.602 0 .199.027.4.055.536.058.399.116.728.04.97-.249.68-.28 1.145-.106 1.484.174.334.535.47.94.601.81.2 1.91.135 2.774.6.926.466 1.866.67 2.616.47.526-.116.97-.464 1.208-.946.587-.003 1.23-.269 2.26-.334.699-.058 1.574.267 2.577.2.025.134.063.198.114.333l.003.003c.391.778 1.113 1.368 1.884 1.43.426.034.851-.067 1.208-.265a.97.97 0 00.139-.095c.234-.196.37-.449.454-.69.181-.535.18-1.134.18-1.513v-.001c.017-.374.017-.748-.018-1.116-.06-.604-.19-1.217-.349-1.745-.052-.199-.176-.534-.282-.733l-.006-.011c.09-.034.18-.064.27-.064.42 0 .76.336.76.748a.746.746 0 01-.081.333c.165.466.29.933.357 1.4.135.833.15 1.667.15 2.067v.2c0 .466-.033.933-.1 1.399-.166 1.201-.534 2.401-1.132 3.467-.666 1.134-1.498 2.134-2.465 2.934-.467.399-.967.734-1.467 1.001-.266.133-.533.234-.799.333-.133.067-.266.1-.399.167-.666.266-1.2.799-1.866 1.132-.333.166-.666.3-.999.433l-.166.067c-.333.133-.666.266-.999.333H7.57c-.333-.067-.666-.2-.999-.333l-.166-.067a7.07 7.07 0 00-.999-.433c-.666-.333-1.2-.866-1.866-1.132a4.665 4.665 0 00-.399-.167 10.67 10.67 0 00-.799-.333 9.75 9.75 0 00-1.467-1.001c-.967-.8-1.799-1.8-2.465-2.934A11.8 11.8 0 01.636 14.6a9.794 9.794 0 01-.1-1.4v-.2c0-.4.015-1.234.15-2.067.067-.466.192-.933.357-1.4a.746.746 0 01-.081-.333c0-.412.34-.748.76-.748.09 0 .18.03.27.064l-.006.011c-.106.199-.23.534-.282.733-.159.528-.289 1.141-.349 1.745-.035.368-.035.742-.018 1.116v.001c0 .379-.001.978.18 1.513.084.241.22.494.454.69a.97.97 0 00.139.095c.357.198.782.299 1.208.265.771-.062 1.493-.652 1.884-1.43l.003-.003c.051-.135.089-.199.114-.333 1.003.067 1.878-.257 2.577-.2.75.2 1.69.004 2.616-.47.864-.465 1.964-.4 2.774-.6.405-.131.766-.267.94-.601.174-.339.143-.804-.106-1.484-.076-.242-.018-.571.04-.97a3.59 3.59 0 01.056-.536c.004-.208-.042-.413-.131-.602-.207-.411-.552-.544-.865-.68-.312-.133-.598-.201-.797-.4-.213-.239-.403-.571-.663-.839a.424.424 0 00-.11-.135c.123-.805-.009-1.657-.287-2.489-.589-1.771-1.831-3.47-2.716-4.521-.75-1.067-.974-1.928-1.05-3.02-.065-1.491 1.056-5.965-3.17-6.298A5.098 5.098 0 005.996 0h6.508z"/></svg>
-        Linux
-      </button>
-      <button class="tab" data-tab="mac">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-        Mac
-      </button>
+      <!-- Download Button -->
+      <div class="download-section" id="downloadSection">
+        <a class="download-btn" id="downloadBtn" href="#">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          <span id="downloadText">Download Suncord for Windows</span>
+        </a>
+        <p class="download-meta" id="downloadMeta">v1.0.0 — Windows 10/11 — Portable zip</p>
+      </div>
     </div>
+  </header>
 
-    <!-- Windows -->
-    <div class="pane active" id="pane-windows">
-      <h2>Download for Windows</h2>
-      <p class="sub">Windows 10/11 &bull; Installer or portable</p>
+  <!-- Install Instructions -->
+  <section class="instructions" id="instructions">
+    <div class="container">
+      <div class="instruction-card" id="instructionContent">
+        <!-- Filled by JS per platform -->
+      </div>
+    </div>
+  </section>
 
-      <a href="https://github.com/Sunny-son-sahur/suncord/releases/latest/download/suncord-setup.exe" class="dl-btn">
-        <div class="info">
-          <span class="name">suncord-setup.exe</span>
-          <span class="size">Windows Installer &bull; Recommended</span>
+  <!-- Features -->
+  <section class="features">
+    <div class="container">
+      <h2 class="section-title">What you get</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🧩</div>
+          <h3>Plugin Store</h3>
+          <p>Browse, install, and manage plugins from a built-in store. Drag, drop, done.</p>
         </div>
-        <span>&#11015;</span>
-      </a>
-
-      <a href="https://github.com/Sunny-son-sahur/suncord/releases/latest/download/suncord-portable.zip" class="dl-btn-secondary">
-        suncord-portable.zip &mdash; Portable (no install needed)
-      </a>
-
-      <div class="steps">
-        <h4>Installation</h4>
-        <ol>
-          <li>Download and run <code>suncord-setup.exe</code></li>
-          <li>Click <strong>Install</strong> (or choose a custom path)</li>
-          <li>Close Discord completely (check system tray)</li>
-          <li>Launch Discord &mdash; the <strong style="color:#f59e0b">&#9728; Store</strong> button appears in the top-right</li>
-        </ol>
-      </div>
-
-      <div class="warning">
-        <strong>&#9888; Windows SmartScreen:</strong> Click "More info" then "Run anyway". This is a false positive &mdash; SUNCORD is open source and safe.
-      </div>
-    </div>
-
-    <!-- Linux -->
-    <div class="pane" id="pane-linux">
-      <h2>Download for Linux</h2>
-      <p class="sub">Debian/Ubuntu &bull; Fedora/RHEL &bull; Any distro</p>
-
-      <a href="https://github.com/Sunny-son-sahur/suncord/releases/latest/download/suncord_1.0.0_amd64.deb" class="dl-btn">
-        <div class="info">
-          <span class="name">suncord_1.0.0_amd64.deb</span>
-          <span class="size">Debian / Ubuntu / Linux Mint</span>
+        <div class="feature-card">
+          <div class="feature-icon">🎨</div>
+          <h3>Theme Store</h3>
+          <p>Full CSS control. Hundreds of themes. Preview before you commit.</p>
         </div>
-        <span>&#11015;</span>
-      </a>
-
-      <a href="https://github.com/Sunny-son-sahur/suncord/releases/latest/download/suncord-portable.zip" class="dl-btn-secondary">
-        suncord-portable.zip &mdash; Portable (any distro)
-      </a>
-
-      <div class="steps">
-        <h4>Installation (.deb)</h4>
-        <ol>
-          <li>Download the <code>.deb</code> file</li>
-          <li>Install: <code>sudo dpkg -i suncord_1.0.0_amd64.deb</code></li>
-          <li>Fix deps if needed: <code>sudo apt-get install -f</code></li>
-          <li>Run: <code>suncord.sh launch</code></li>
-        </ol>
-
-        <h4 style="margin-top:16px">From Source</h4>
-        <ol>
-          <li><code>git clone https://github.com/Sunny-son-sahur/suncord.git</code></li>
-          <li><code>cd suncord && npm install && npm run build</code></li>
-          <li><code>bash scripts/suncord.sh install</code></li>
-          <li>Launch Discord &mdash; done!</li>
-        </ol>
-      </div>
-    </div>
-
-    <!-- Mac -->
-    <div class="pane" id="pane-mac">
-      <h2>Download for Mac</h2>
-      <p class="sub">macOS 12+ &bull; From source</p>
-
-      <a href="https://github.com/Sunny-son-sahur/suncord/releases/latest/download/suncord-portable.zip" class="dl-btn">
-        <div class="info">
-          <span class="name">suncord-portable.zip</span>
-          <span class="size">Portable &bull; Works on macOS</span>
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3>Hot Reload</h3>
+          <p>Change a setting, see it instantly. No restarts. No refreshes.</p>
         </div>
-        <span>&#11015;</span>
-      </a>
-
-      <div class="steps">
-        <h4>Installation</h4>
-        <ol>
-          <li>Install Node.js from <a href="https://nodejs.org" target="_blank">nodejs.org</a></li>
-          <li><code>git clone https://github.com/Sunny-son-sahur/suncord.git</code></li>
-          <li><code>cd suncord && npm install && npm run build</code></li>
-          <li><code>node scripts/inject.mjs</code></li>
-          <li>Launch Discord &mdash; the Store button appears!</li>
-        </ol>
-      </div>
-
-      <div class="warning">
-        <strong>&#9888; macOS Gatekeeper:</strong> If you get "app can't be opened", right-click the app and select Open. Or go to System Settings &gt; Privacy &amp; Security and click "Allow Anyway".
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="compat" id="compat">
-  <div class="compat-card">
-    <h2>Compatible Sources</h2>
-    <div class="compat-grid">
-      <div class="compat-item">
-        <span class="ci">&#128296;</span>
-        <div class="ct"><strong>Vencord</strong><span>100+ plugins, community themes</span></div>
-      </div>
-      <div class="compat-item">
-        <span class="ci">&#127912;</span>
-        <div class="ct"><strong>BetterDiscord</strong><span>CSS themes work directly</span></div>
-      </div>
-      <div class="compat-item">
-        <span class="ci">&#9889;</span>
-        <div class="ct"><strong>Powercord</strong><span>Plugin structure supported</span></div>
-      </div>
-      <div class="compat-item">
-        <span class="ci">&#127760;</span>
-        <div class="ct"><strong>Community</strong><span>Any GitHub-hosted CSS theme</span></div>
+        <div class="feature-card">
+          <div class="feature-icon">🔧</div>
+          <h3>Custom Settings</h3>
+          <p>Every mod adds its own settings page. Clean, integrated, native feel.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🚀</div>
+          <h3>Zero Bloat</h3>
+          <p>Lightweight injector. No background processes. Only runs when Discord runs.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🛡️</div>
+          <h3>Safe to Use</h3>
+          <p>Open source. No telemetry. No accounts. Your Discord, your data.</p>
+        </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<footer>
-  SUNCORD is not affiliated with Discord, Inc. &bull;
-  <a href="https://github.com/Sunny-son-sahur/suncord" target="_blank">GitHub</a> &bull;
-  MIT License
-</footer>
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-inner">
+        <span class="footer-brand">☀️ Suncord</span>
+        <span class="footer-links">
+          <a href="https://github.com/Sunny-son-sahur/suncord" target="_blank">GitHub</a>
+          <a href="https://github.com/Sunny-son-sahur/suncord/issues" target="_blank">Issues</a>
+        </span>
+        <span class="footer-copy">Not affiliated with Discord Inc.</span>
+      </div>
+    </div>
+  </footer>
 
-<script>
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
-    tab.classList.add('active');
-    document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
-  });
-});
-</script>
+  <script src="app.js"></script>
 </body>
 </html>
