@@ -43,21 +43,16 @@ async function detectDiscord() {
   // Check patch status for each
   for (const d of detectedDiscords) {
     try {
-      const status = await window.suncord.checkPatched(d.path);
+      const status = await window.suncord.checkPatched(d.resources);
       d.patched = status.patched;
     } catch {
       d.patched = false;
     }
   }
 
-  // Set install path
-  const platform = await window.suncord.getPlatform();
-  if (platform === "win32") {
-    $("#installPath").textContent = process.env.LOCALAPPDATA || "C:\\Users\\...\\AppData\\Local";
-  } else if (platform === "linux") {
-    $("#installPath").textContent = "/usr/lib/suncord";
-  } else {
-    $("#installPath").textContent = "/Applications/Suncord.app";
+  // Show detected path
+  if (detectedDiscords.length > 0) {
+    $("#installPath").textContent = detectedDiscords[0].resources;
   }
 
   renderDiscordList();
@@ -83,7 +78,7 @@ function renderDiscordList() {
       <div class="discord-radio"></div>
       <div class="discord-info">
         <div class="discord-name">[${statusLabel}] ${d.name}</div>
-        <div class="discord-path">${d.path}</div>
+        <div class="discord-path">${d.resources}</div>
       </div>
       <span class="discord-badge ${statusClass}">${statusLabel}</span>
     `;
@@ -122,7 +117,7 @@ $("#customRadio").addEventListener("change", () => {
     $$(".discord-item").forEach((el) => el.classList.remove("selected"));
     $("#customPathInput").classList.remove("hidden");
     $("#customPathInput").focus();
-    setStatus("Enter the path to your Discord installation");
+    setStatus("Enter the path to your Discord resources directory");
   }
 });
 
@@ -136,10 +131,21 @@ $("#openDirBtn").addEventListener("click", async () => {
   }
 });
 
+// ── Get selected resources dir ──
+async function getSelectedResources() {
+  if (selectedIndex >= 0 && selectedIndex < detectedDiscords.length) {
+    return detectedDiscords[selectedIndex].resources;
+  }
+  if ($("#customRadio").checked) {
+    return $("#customPathInput").value.trim();
+  }
+  return null;
+}
+
 // ── Install ──
 $("#btnInstall").addEventListener("click", async () => {
-  const path = getSelectedPath();
-  if (!path) {
+  const resources = await getSelectedResources();
+  if (!resources) {
     setStatus("Please select a Discord installation", "error");
     return;
   }
@@ -148,9 +154,9 @@ $("#btnInstall").addEventListener("click", async () => {
   disableButtons(true);
 
   try {
-    const result = await window.suncord.install(path);
+    const result = await window.suncord.install(resources);
     if (result.success) {
-      setStatus(result.alreadyPatched ? "Already installed" : "Suncord installed successfully!", "success");
+      setStatus("Suncord installed successfully!", "success");
       await refreshStatus();
     } else {
       setStatus("Error: " + (result.error || "Installation failed"), "error");
@@ -164,8 +170,8 @@ $("#btnInstall").addEventListener("click", async () => {
 
 // ── Uninstall ──
 $("#btnUninstall").addEventListener("click", async () => {
-  const path = getSelectedPath();
-  if (!path) {
+  const resources = await getSelectedResources();
+  if (!resources) {
     setStatus("Please select a Discord installation", "error");
     return;
   }
@@ -174,7 +180,7 @@ $("#btnUninstall").addEventListener("click", async () => {
   disableButtons(true);
 
   try {
-    const result = await window.suncord.uninstall(path);
+    const result = await window.suncord.uninstall(resources);
     if (result.success) {
       setStatus("Suncord removed. Discord restored to original state.", "success");
       await refreshStatus();
@@ -190,8 +196,8 @@ $("#btnUninstall").addEventListener("click", async () => {
 
 // ── Update ──
 $("#btnUpdate").addEventListener("click", async () => {
-  const path = getSelectedPath();
-  if (!path) {
+  const resources = await getSelectedResources();
+  if (!resources) {
     setStatus("Please select a Discord installation", "error");
     return;
   }
@@ -200,9 +206,8 @@ $("#btnUpdate").addEventListener("click", async () => {
   disableButtons(true);
 
   try {
-    // Uninstall first, then reinstall
-    await window.suncord.uninstall(path);
-    const result = await window.suncord.install(path);
+    await window.suncord.uninstall(resources);
+    const result = await window.suncord.install(resources);
     if (result.success) {
       setStatus("Suncord updated successfully!", "success");
       await refreshStatus();
@@ -216,30 +221,9 @@ $("#btnUpdate").addEventListener("click", async () => {
   disableButtons(false);
 });
 
-// ── Install OpenAsar ──
-$("#btnInstallOpenAsar").addEventListener("click", async () => {
-  const path = getSelectedPath();
-  if (!path) {
-    setStatus("Please select a Discord installation", "error");
-    return;
-  }
-
-  setStatus("OpenAsar is not yet bundled. Use the Install button for Suncord.", "error");
-});
-
 // ── Helpers ──
-function getSelectedPath() {
-  if (selectedIndex >= 0 && selectedIndex < detectedDiscords.length) {
-    return detectedDiscords[selectedIndex].path;
-  }
-  if ($("#customRadio").checked) {
-    return $("#customPathInput").value.trim();
-  }
-  return null;
-}
-
 function disableButtons(on) {
-  ["btnInstall", "btnUninstall", "btnUpdate", "btnInstallOpenAsar"].forEach((id) => {
+  ["btnInstall", "btnUninstall", "btnUpdate"].forEach((id) => {
     $(`#${id}`).disabled = on;
   });
 }
@@ -247,7 +231,7 @@ function disableButtons(on) {
 async function refreshStatus() {
   for (let i = 0; i < detectedDiscords.length; i++) {
     try {
-      const status = await window.suncord.checkPatched(detectedDiscords[i].path);
+      const status = await window.suncord.checkPatched(detectedDiscords[i].resources);
       detectedDiscords[i].patched = status.patched;
     } catch {
       detectedDiscords[i].patched = false;
