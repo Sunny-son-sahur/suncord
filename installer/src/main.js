@@ -39,27 +39,39 @@ function getDiscordPaths() {
 
   if (platform === "win32") {
     const localAppData = process.env.LOCALAPPDATA || "";
+    const appData = process.env.APPDATA || "";
     const programFiles = process.env["PROGRAMFILES(X86)"] || "C:\\Program Files (x86)";
     const programFilesAlt = process.env["PROGRAMFILES"] || "C:\\Program Files";
 
     const candidates = [
       path.join(localAppData, "Discord"),
+      path.join(appData, "Discord"),
       path.join(programFiles, "Discord"),
       path.join(programFilesAlt, "Discord"),
       path.join(localAppData, "DiscordPTB"),
+      path.join(appData, "DiscordPTB"),
       path.join(localAppData, "DiscordCanary"),
+      path.join(appData, "DiscordCanary"),
+      path.join(localAppData, "DiscordDevelopment"),
+      // Check if discord_desktop_core exists directly in app/ (no version dir)
+      path.join(localAppData, "Discord", "app"),
     ];
 
     for (const p of candidates) {
       if (fs.existsSync(p)) {
-        // Find the versioned app directory
+        // If path points directly to app/ dir (no version subdir)
+        if (p.endsWith(path.join("Discord", "app"))) {
+          const coreIndex = path.join(p, "discord_desktop_core", "index.js");
+          if (fs.existsSync(coreIndex)) {
+            const name = p.includes("PTB") ? "Discord PTB" : p.includes("Canary") ? "Discord Canary" : "Discord";
+            paths.push({ name, path: path.dirname(p), appDir: p, version: "direct" });
+            continue;
+          }
+        }
+
         const appDir = findLatestAppDir(p);
         if (appDir) {
-          const name = p.includes("PTB")
-            ? "Discord PTB"
-            : p.includes("Canary")
-            ? "Discord Canary"
-            : "Discord";
+          const name = p.includes("PTB") ? "Discord PTB" : p.includes("Canary") ? "Discord Canary" : "Discord";
           paths.push({ name, path: p, appDir, version: path.basename(appDir) });
         }
       }
@@ -117,23 +129,31 @@ function findLatestAppDir(basePath) {
     const appPath = path.join(basePath, "app");
     if (!fs.existsSync(appPath)) return null;
 
-    const versions = fs
-      .readdirSync(appPath)
-      .filter((v) => v.startsWith("modules"))
-      .sort()
-      .reverse();
+    // List all version directories inside app/
+    const entries = fs.readdirSync(appPath);
+    if (entries.length === 0) return null;
 
-    // Find the one with resources/app
-    for (const v of versions) {
-      const resourcesApp = path.join(appPath, v, "discord_desktop_core", "index.js");
-      if (fs.existsSync(path.join(appPath, v))) {
-        return path.join(appPath, v);
-      }
+    // Sort newest first
+    entries.sort().reverse();
+
+    for (const entry of entries) {
+      const fullPath = path.join(appPath, entry);
+      const stat = fs.statSync(fullPath);
+      if (!stat.isDirectory()) continue;
+
+      // Check for discord_desktop_core/index.js (newer Discord)
+      const coreIndex = path.join(fullPath, "discord_desktop_core", "index.js");
+      if (fs.existsSync(coreIndex)) return fullPath;
+
+      // Check for resources/app (older Discord)
+      const resourcesApp = path.join(fullPath, "resources", "app");
+      if (fs.existsSync(resourcesApp)) return fullPath;
     }
 
-    // Fallback: just return latest modules dir
-    if (versions.length > 0) {
-      return path.join(appPath, versions[0]);
+    // Fallback: return the first directory we found
+    for (const entry of entries) {
+      const fullPath = path.join(appPath, entry);
+      if (fs.statSync(fullPath).isDirectory()) return fullPath;
     }
   } catch (e) {}
   return null;
