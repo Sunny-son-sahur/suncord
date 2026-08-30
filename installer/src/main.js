@@ -77,26 +77,50 @@ function getDiscordPaths() {
       }
     }
   } else if (platform === "linux") {
+    const home = process.env.HOME || "";
     const candidates = [
-      path.join(process.env.HOME || "", ".config/discord"),
-      path.join(process.env.HOME || "", ".config/discordptb"),
-      path.join(process.env.HOME || "", ".config/discord-canary"),
+      path.join(home, ".config/discord"),
+      path.join(home, ".config/discordptb"),
+      path.join(home, ".config/discord-canary"),
       "/usr/share/discord",
+      "/usr/lib/discord",
+      "/usr/lib64/discord",
       "/opt/Discord",
     ];
 
     for (const p of candidates) {
-      if (fs.existsSync(p)) {
-        const appDir = findLatestAppDir(p);
-        if (appDir) {
-          const name = p.includes("ptb")
-            ? "Discord PTB"
-            : p.includes("canary")
-            ? "Discord Canary"
-            : "Discord";
-          paths.push({ name, path: p, appDir, version: path.basename(appDir) });
-        }
+      if (!fs.existsSync(p)) continue;
+
+      // Try findLatestAppDir (for app/ wrapper structure)
+      const appDir = findLatestAppDir(p);
+      if (appDir) {
+        const name = p.includes("ptb") ? "Discord PTB" : p.includes("canary") ? "Discord Canary" : "Discord";
+        paths.push({ name, path: p, appDir, version: path.basename(appDir) });
+        continue;
       }
+
+      // Direct structure: ~/.config/discord/app-X.Y.Z/resources/app.asar
+      // Look for app-* directories directly
+      try {
+        const entries = fs.readdirSync(p);
+        const appDirs = entries
+          .filter((e) => e.startsWith("app-") || e.startsWith("discord-"))
+          .sort()
+          .reverse();
+
+        for (const dir of appDirs) {
+          const fullPath = path.join(p, dir);
+          if (!fs.statSync(fullPath).isDirectory()) continue;
+
+          const asarPath = path.join(fullPath, "resources", "app.asar");
+          const coreIndex = path.join(fullPath, "discord_desktop_core", "index.js");
+          if (fs.existsSync(asarPath) || fs.existsSync(coreIndex)) {
+            const name = p.includes("ptb") ? "Discord PTB" : p.includes("canary") ? "Discord Canary" : "Discord";
+            paths.push({ name, path: p, appDir: fullPath, version: dir });
+            break;
+          }
+        }
+      } catch (e) {}
     }
   } else if (platform === "darwin") {
     const home = process.env.HOME || "";
