@@ -1,5 +1,5 @@
 import { build, context } from "esbuild";
-import { mkdirSync, cpSync, existsSync } from "fs";
+import { mkdirSync, cpSync, existsSync, writeFileSync } from "fs";
 
 const watch = process.argv.includes("--watch");
 
@@ -14,18 +14,18 @@ const shared = {
   logLevel: "info",
 };
 
-// 1. Injector — runs in Electron main process (Node.js)
-const injectorCtx = await build({
+// 1. Patcher — runs in Electron main process (Node.js)
+const patcherCtx = await build({
   ...shared,
-  entryPoints: ["src/injector/index.mjs"],
-  outfile: "dist/injector.js",
+  entryPoints: ["src/patcher/patcher.js"],
+  outfile: "dist/patcher.js",
   format: "cjs",
   platform: "node",
   target: "node18",
-  external: ["electron"], // electron is provided at runtime by Discord
+  external: ["electron"],
 });
 
-// 2. Preload script — runs in preload context
+// 2. Preload script
 cpSync("src/injector/preload.cjs", "dist/preload.cjs");
 
 // 3. Renderer — injected into Discord's renderer (browser context)
@@ -52,5 +52,5 @@ console.log("☀ SUNCORD build complete");
 
 if (watch) {
   console.log("Watching for changes...");
-  await Promise.all([injectorCtx.watch(), rendererCtx.watch()]);
+  await Promise.all([patcherCtx.watch(), rendererCtx.watch()]);
 }
